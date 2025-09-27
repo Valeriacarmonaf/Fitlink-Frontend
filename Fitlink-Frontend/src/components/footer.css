@@ -1,0 +1,47 @@
+:root {
+  --fitlink-blue: #6BA8FF;
+  --fitlink-white: #ffffff;
+}
+
+/* Footer base (mobile-first) */
+.fl-footer {
+  margin-top: 40px;
+  background: var(--fitlink-blue);
+  color: var(--fitlink-white);
+}
+
+/* Fila de iconos */
+.fl-footer-top {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  padding: 16px 0 8px;
+}
+
+.fl-social {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  color: var(--fitlink-white);
+  opacity: 0.95;
+}
+
+.fl-social svg { width: 100%; height: 100%; }
+.fl-social:hover { opacity: 1; transform: translateY(-1px); }
+
+/* Marca centrada al fondo */
+.fl-footer-bottom {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 14px;
+}
+
+.fl-footer-brand {
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+/* Desktop tweaks */
+@media (min-width: 768px) {
+  .fl-footer-top { gap: 22px; padding: 18px 0 10px; }
+}

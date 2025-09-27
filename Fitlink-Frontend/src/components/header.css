@@ -1,0 +1,67 @@
+:root {
+  --fitlink-blue: #6BA8FF;
+  --fitlink-white: #ffffff;
+}
+
+/* Header base (mobile-first) */
+.fl-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--fitlink-blue);
+  color: var(--fitlink-white);
+}
+
+.fl-header .fl-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+/* Marca izquierda */
+.fl-brand {
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+/* Buscador centrado */
+.fl-search {
+  flex: 1;
+  display: flex;
+  justify-content: center; /* mantiene el input en el centro del header */
+}
+
+.fl-search input {
+  width: 100%;
+  max-width: 520px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  padding: 0 14px;
+  outline: none;
+}
+
+/* Botón derecha */
+.fl-cta {
+  background: transparent;
+  color: var(--fitlink-white);
+  border: 2px solid rgba(255,255,255,0.9);
+  padding: 8px 12px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.fl-cta:hover { background: rgba(255,255,255,0.12); }
+
+/* Ajustes en pantallas desde 768px */
+@media (min-width: 768px) {
+  .fl-header .fl-container { padding: 14px 24px; gap: 16px; }
+  .fl-brand { font-size: 1.25rem; }
+  .fl-cta { font-size: 1rem; padding: 9px 14px; }
+}
