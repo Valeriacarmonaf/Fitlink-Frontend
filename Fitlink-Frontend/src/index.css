@@ -1,38 +1,14 @@
-/* Reset básico y tipografía */
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; }
+@import "tailwindcss";
+
 body {
-  margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-  color: #111827; /* texto default del main */
-  background: #ffffff;
+    margin: 0;
 }
 
-/* Contenido principal del landing (placeholder) */
-.fl-main {
-  display: grid;
-  place-items: center;
-  padding: 24px 16px 40px;
+/* Custom utility to hide scrollbar for specific elements */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
 }
-
-.fl-hero {
-  width: 100%;
-  max-width: 960px;
-  text-align: center;
-  padding: 28px 16px;
-}
-
-.fl-hero h1 {
-  margin: 0 0 8px;
-  font-size: 1.6rem;
-}
-
-.fl-hero p {
-  margin: 0 auto;
-  max-width: 44ch;
-  opacity: 0.85;
-}
-
-@media (min-width: 768px) {
-  .fl-hero h1 { font-size: 2rem; }
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
 }

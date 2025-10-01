@@ -1,64 +1,55 @@
+import React from 'react';
+import { Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
-import "./footer.css";
+// Tailwind conversion notes:
+// --fitlink-blue: #6BA8FF -> bg-[#6BA8FF]
+// --fitlink-white: #ffffff -> text-white
 
 export default function Footer() {
   return (
-    <footer className="fl-footer">
-      <div className="fl-footer-top">
-        <a
-          className="fl-social"
-          href="https://www.instagram.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Instagram"
-          title="Instagram"
+    // fl-footer: margin-top: 40px, background: var(--fitlink-blue), color: var(--fitlink-white)
+    <footer className="mt-10 bg-[#6BA8FF] text-white">
+      
+      {/* fl-footer-top: fle justify-content: center gap: 18px/22px padding: 16px 0 8px/10px */}
+      <div className="flex justify-center gap-4 py-4 md:gap-5 md:py-5">
+        
+        {/* fl-social: inline-flex w/h: 32px opacity: 0.95, hover: opacity: 1, transform: translateY(-1px) */}
+        <a 
+          href="#" 
+          aria-label="Facebook" 
+          className="inline-flex w-8 h-8 opacity-95 transition duration-200 hover:opacity-100 hover:-translate-y-px"
         >
-          {/* Instagram (blanco) */}
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2.2A2.8 2.8 0 1 0 12 16.8 2.8 2.8 0 0 0 12 9.2zm5.2-1.6a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"
-              fill="currentColor"
-            />
-          </svg>
+          <Facebook className="w-full h-full" />
         </a>
-
-        <a
-          className="fl-social"
-          href="https://x.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="X (Twitter)"
-          title="X (Twitter)"
+        <a 
+          href="#" 
+          aria-label="Twitter" 
+          className="inline-flex w-8 h-8 opacity-95 transition duration-200 hover:opacity-100 hover:-translate-y-px"
         >
-          {/* X (blanco) */}
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M3 3h3.6l5.1 7.2L15.9 3H21l-7.1 9.9L21 21h-3.6l-5.4-7.6L8.1 21H3l7.5-10.5L3 3z"
-              fill="currentColor"
-            />
-          </svg>
+          <Twitter className="w-full h-full" />
         </a>
-
-        <a
-          className="fl-social"
-          href="https://www.facebook.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Facebook"
-          title="Facebook"
+        <a 
+          href="#" 
+          aria-label="Instagram" 
+          className="inline-flex w-8 h-8 opacity-95 transition duration-200 hover:opacity-100 hover:-translate-y-px"
         >
-          {/* Facebook (blanco) */}
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M13.5 21v-7.5h2.5l.4-3H13.5V8.3c0-.9.3-1.5 1.6-1.5h1.3V4.1c-.6-.1-1.4-.1-2.3-.1-2.3 0-3.8 1.3-3.8 3.9V10.5H8v3h2.3V21h3.2z"
-              fill="currentColor"
-            />
-          </svg>
+          <Instagram className="w-full h-full" />
+        </a>
+        <a 
+          href="#" 
+          aria-label="LinkedIn" 
+          className="inline-flex w-8 h-8 opacity-95 transition duration-200 hover:opacity-100 hover:-translate-y-px"
+        >
+          <Linkedin className="w-full h-full" />
         </a>
       </div>
 
-      <div className="fl-footer-bottom">
-        <span className="fl-footer-brand">FitLink</span>
+      {/* fl-footer-bottom: flex justify-content: center padding: 6px 0 14px */}
+      <div className="flex justify-center py-2 pb-4">
+        {/* fl-footer-brand: font-weight: 800 letter-spacing: 0.3px */}
+        <p className="font-extrabold tracking-wider text-sm">
+          &copy; {new Date().getFullYear()} FitLink
+        </p>
       </div>
     </footer>
   );
