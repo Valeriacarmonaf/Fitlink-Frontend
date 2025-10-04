@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 export default function Header() {
   return (
     <header className="sticky top-0 z-20 bg-[#6BA8FF] text-white">
@@ -17,13 +18,21 @@ export default function Header() {
           />
         </form>
 
-        <a 
-          className="bg-transparent text-white border-2 border-white/90 px-3 py-2 md:px-4 md:py-2.5 rounded-full font-bold text-sm md:text-base whitespace-nowrap transition duration-200 hover:bg-white/10" 
-          href="#" 
+        <Link
+          to="/register"
+          className="bg-transparent text-white border-2 border-white/90 px-3 py-2 md:px-4 md:py-2.5 rounded-full font-bold text-sm md:text-base whitespace-nowrap transition duration-200 hover:bg-white hover:text-blue-500"
           aria-label="Registrarme"
         >
-          Registrarme
-        </a>
+  Registrarme
+        </Link>
+        <Link
+          to="/users"
+          className="bg-white text-blue-500 border-2 border-white px-3 py-2 md:px-4 md:py-2.5 rounded-full font-bold text-sm md:text-base whitespace-nowrap transition duration-200 hover:bg-blue-500 hover:text-white"
+          aria-label="Usuarios"
+        >
+  Ver Usuarios
+        </Link>
+
       </div>
     </header>
   );
