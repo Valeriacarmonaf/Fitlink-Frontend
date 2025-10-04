@@ -6,6 +6,8 @@ import "./index.css";
 
 import LandingPage from "./pages/LandingPage"; 
 import Dashboard from "./pages/Dashboard"; 
+import Register from "./pages/Register";
+import Users from "./pages/Users";
 
 // Tailwind classes for the navigation links
 const NavLinkClasses = "px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150";
@@ -31,6 +33,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/users" element={<Users />} />
           
           {/* Replaced fl-main with Tailwind classes */}
           <Route path="*" element={<main className="flex-grow p-10 text-center">
