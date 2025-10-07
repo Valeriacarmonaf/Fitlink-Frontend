@@ -152,14 +152,20 @@ export default function RegisterForm() {
 
         {/* Ciudad */}
         <div>
-          <label className="block font-medium">Ciudad:</label>
-          <input
-            type="text"
+          <label className="block font-medium">Municipio:</label>
+          <select
             name="ciudad"
             value={formData.ciudad}
             onChange={handleChange}
             className="border p-2 w-full rounded"
-          />
+          >
+            <option value="">Selecciona un municipio</option>
+            <option value="Libertador">Libertador</option>
+            <option value="Chacao">Chacao</option>
+            <option value="Baruta">Baruta</option>
+            <option value="Sucre">Sucre</option>
+            <option value="El Hatillo">El Hatillo</option>
+          </select>
           {errors.ciudad && (
             <p className="text-red-500 text-sm">{errors.ciudad}</p>
           )}
