@@ -1,35 +1,40 @@
 // src/lib/api.js
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
-const API_URL = import.meta.env.VITE_API_URL; // viene de tu archivo .env
-
-// Función auxiliar para peticiones GET
-async function getJSON(path) {
-  const res = await fetch(`${API_URL}${path}`);
-  if (!res.ok) throw new Error(`HTTP ${res.status} - ${await res.text()}`);
+async function http(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(txt || `HTTP ${res.status}`);
+  }
   return res.json();
 }
 
-// API del backend
 export const api = {
-  stats: () => getJSON("/stats"),
-  upcomingEvents: (limit = 20) => getJSON(`/events/upcoming?limit=${limit}`),
+  /** Próximos eventos (para Landing / carrusel) */
+  upcomingEvents(limit = 50) {
+    return http(`${API}/api/events/upcoming?limit=${limit}`);
+  },
 
-  users: {
-    list: () => getJSON("/users"),
-    update: async (id, payload) => {
-      const res = await fetch(`${API_URL}/users/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status} - ${await res.text()}`);
-      return res.json();
-    },
+  /** Listado general con filtros opcionales (por si lo necesitas) */
+  events(params = {}) {
+    const qs = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== null && `${v}`.length)
+      )
+    );
+    const url = qs.toString() ? `${API}/api/events?${qs}` : `${API}/api/events`;
+    return http(url);
+  },
 
-    remove: async (id) => {
-      const res = await fetch(`${API_URL}/users/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`HTTP ${res.status} - ${await res.text()}`);
-      return res.json();
-    },
+  /** KPIs del dashboard (si tu backend lo expone; si no, bórralo donde lo uses) */
+  stats() {
+    return http(`${API}/api/stats`).catch(() => ({ usuarios: 0, categorias: 0, eventosProximos: 0 }));
   },
 };
