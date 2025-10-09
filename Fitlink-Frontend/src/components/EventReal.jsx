@@ -1,6 +1,8 @@
 import React from 'react';
 
-const EventReal = ({ title, description, imageUrl, zona }) => {
+const EventReal = ({ event, onShowDetails }) => {
+  const { title, description, zona, imageUrl } = event;
+
   return (
     // w-80 (320px) + m-4 (32px) = 352px total (coincide con el carrusel)
     <div className="flex-none w-80 max-w-sm rounded-lg shadow-lg overflow-hidden bg-white m-4 border border-gray-200">
@@ -22,7 +24,11 @@ const EventReal = ({ title, description, imageUrl, zona }) => {
 
         <p className="text-gray-600 text-sm mt-2">{description}</p>
 
-        <button className="mt-4 px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-md hover:bg-blue-600 transition duration-200">
+        <button
+          className="mt-4 px-4 py-2 bg-blue-500 text-white text-sm font-semibold rounded-md hover:bg-blue-600 transition duration-200"
+          onClick={() => onShowDetails(event)} 
+          aria-label="Ver detalles del evento"
+        >
           Ver Evento
         </button>
       </div>

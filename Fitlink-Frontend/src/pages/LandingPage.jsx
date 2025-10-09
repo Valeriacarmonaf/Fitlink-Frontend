@@ -1,6 +1,8 @@
+// src/pages/LandingPage.jsx
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import EventReal from '../components/EventReal';
+import EventDetailsModal from '../components/EventDetailsModal';
 import events from '../data/eventsDataDummy';
 
 const PrimaryButtonClasses =
@@ -9,9 +11,34 @@ const PrimaryButtonClasses =
 const SCROLL_AMOUNT = 352;     // Ancho exacto de una tarjeta (w-80 + márgenes)
 const SCROLL_DURATION = 300;   // ms
 
+// Mapea el dummy a la forma que espera el modal (nombres de BD)
+function toDbEvent(dummy) {
+  return {
+    // campos de tu BD
+    id: dummy.id,
+    nombre_evento: dummy.title,
+    creador_id: dummy.creador_id ?? "N/A",
+    categoria: dummy.categoria ?? "General",
+    descripcion: dummy.description,
+    inicio: dummy.inicio ?? null,
+    fin: dummy.fin ?? null,
+    cupos: dummy.cupos ?? null,
+    municipio: dummy.zona,
+    precio: dummy.precio ?? null,
+    estado: dummy.estado ?? "Activo",
+    // opcional, para la tarjeta
+    imageUrl: dummy.imageUrl,
+  };
+}
+
 const LandingPage = () => {
   const scrollContainerRef = useRef(null);
   const [isScrolling, setIsScrolling] = useState(false);
+
+  // Estado del modal
+  const [selected, setSelected] = useState(null);
+  const [open, setOpen] = useState(false);
+  const handleShowDetails = (ev) => { setSelected(ev); setOpen(true); };
 
   // --- Filtro por zona ---
   const [selectedZone, setSelectedZone] = useState('Todas');
@@ -72,7 +99,6 @@ const LandingPage = () => {
       if (!startTime) startTime = ts;
       const progress = ts - startTime;
       const pct = Math.min(progress / SCROLL_DURATION, 1);
-      // Easing
       const eased = pct < 0.5 ? 2 * pct * pct : 1 - Math.pow(-2 * pct + 2, 2) / 2;
       container.scrollLeft = start + (end - start) * eased;
 
@@ -136,15 +162,16 @@ const LandingPage = () => {
         {/* Si hay 1 o 2, muestro grilla responsive */}
         {filtered.length > 0 && !useCarousel && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 justify-items-center">
-            {filtered.map((event) => (
-              <EventReal
-                key={event.id}
-                title={event.title}
-                description={event.description}
-                imageUrl={event.imageUrl}
-                zona={event.zona}
-              />
-            ))}
+            {filtered.map((e) => {
+              const ev = toDbEvent(e);
+              return (
+                <EventReal
+                  key={ev.id}
+                  event={ev}
+                  onShowDetails={handleShowDetails}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -164,15 +191,16 @@ const LandingPage = () => {
 
             <div className="w-[352px] mx-auto overflow-hidden">
               <div ref={scrollContainerRef} className="flex overflow-x-auto hide-scrollbar p-4">
-                {visibleEvents.map((event, index) => (
-                  <EventReal
-                    key={event.id + '-' + index}
-                    title={event.title}
-                    description={event.description}
-                    imageUrl={event.imageUrl}
-                    zona={event.zona}
-                  />
-                ))}
+                {visibleEvents.map((e, index) => {
+                  const ev = toDbEvent(e);
+                  return (
+                    <EventReal
+                      key={ev.id + '-' + index}
+                      event={ev}
+                      onShowDetails={handleShowDetails}
+                    />
+                  );
+                })}
               </div>
             </div>
 
@@ -189,6 +217,13 @@ const LandingPage = () => {
           </div>
         )}
       </section>
+
+      {/* Modal único */}
+      <EventDetailsModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        event={selected}
+      />
     </main>
   );
 };
