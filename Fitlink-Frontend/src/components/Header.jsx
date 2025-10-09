@@ -1,15 +1,46 @@
-// Header.jsx
-import { useState } from "react";
-import { Link } from "react-router-dom";
+// src/components/Header.jsx
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { SlidersHorizontal } from "lucide-react";
 import FiltersModal from "./FiltersModal";
 
+const stripEmojiPrefix = (s) =>
+  s ? s.replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+/, "").trim() : "";
+
 export default function Header() {
   const [openFilters, setOpenFilters] = useState(false);
+  const [q, setQ] = useState("");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const handleApplyFilters = ({ categories, lugares }) => {
-    // Conecta aquí con tu lógica (estado global / Supabase / URL params)
-    // console.log({ categories, lugares });
+  // sincroniza input con ?q= si ya viene en la URL
+  useEffect(() => {
+    setQ(searchParams.get("q") || "");
+  }, [searchParams]);
+
+  const submitSearch = (e) => {
+    e.preventDefault();
+    const params = new URLSearchParams(searchParams);
+    if (q && q.trim()) params.set("q", q.trim());
+    else params.delete("q");
+    // navega al dashboard para ver resultados
+    navigate({ pathname: "/dashboard", search: params.toString() });
+  };
+
+  const handleApplyFilters = ({ categories = [], lugares = [] }) => {
+    const params = new URLSearchParams(searchParams);
+
+    // normaliza categorías (quitar emoji al inicio para que coincida con lo que hay en BD)
+    const normCats = categories.map(stripEmojiPrefix);
+
+    if (normCats.length) params.set("categorias", normCats.join(","));
+    else params.delete("categorias");
+
+    if (lugares.length) params.set("lugares", lugares.join(","));
+    else params.delete("lugares");
+
+    navigate({ pathname: "/dashboard", search: params.toString() });
+    setOpenFilters(false);
   };
 
   return (
@@ -21,27 +52,28 @@ export default function Header() {
         </div>
 
         {/* Buscador + Filtros */}
-        <form className="flex-1 flex items-center justify-center gap-2" role="search" aria-label="Buscar">
+        <form onSubmit={submitSearch} className="flex-1 flex items-center justify-center gap-2" role="search" aria-label="Buscar">
           <input
             type="search"
             placeholder="Buscar actividades…"
             aria-label="Buscar actividades"
             className="w-full max-w-xl h-[38px] border-none rounded-full px-4 text-gray-800 focus:outline-none focus:ring-2 focus:ring-white/80 text-sm bg-white"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
           />
 
           {/* Botón Filtros */}
           <button
             type="button"
             onClick={() => setOpenFilters(true)}
-            className="flex items-center gap-2 text-white font-extrabold rounded-full px-4 py-2
-                       hover:bg-white/30 cursor-pointer transition-colors duration-200"
+            className="flex items-center gap-2 text-white font-extrabold rounded-full px-4 py-2 hover:bg-white/30 cursor-pointer transition-colors duration-200"
           >
             <span>Filtros</span>
             <SlidersHorizontal size={18} />
           </button>
         </form>
 
-        {/* CTA Registrarme (usa Link de react-router-dom) */}
+        {/* CTA Registrarme */}
         <Link
           to="/register"
           className="bg-transparent text-white border-2 border-white/90 px-3 py-2 md:px-4 md:py-2.5 rounded-full font-bold text-sm md:text-base whitespace-nowrap transition duration-200 hover:bg-white/10"
@@ -49,17 +81,6 @@ export default function Header() {
         >
           Registrarme
         </Link>
-        
-        {/* CTA Ver Usuarios */}
-        {/* 
-        <Link
-          to="/users"
-          className="bg-white text-blue-500 border-2 border-white px-3 py-2 md:px-4 md:py-2.5 rounded-full font-bold text-sm md:text-base whitespace-nowrap transition duration-200 hover:bg-blue-500 hover:text-white"
-          aria-label="Usuarios"
-        >
-          Ver Usuarios
-        </Link>
-        */}
       </div>
 
       {/* Modal de Filtros */}
