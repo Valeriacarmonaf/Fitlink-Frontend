@@ -49,8 +49,9 @@ export default function Header() {
         >
           Registrarme
         </Link>
-
+        
         {/* CTA Ver Usuarios */}
+        {/* 
         <Link
           to="/users"
           className="bg-white text-blue-500 border-2 border-white px-3 py-2 md:px-4 md:py-2.5 rounded-full font-bold text-sm md:text-base whitespace-nowrap transition duration-200 hover:bg-blue-500 hover:text-white"
@@ -58,6 +59,7 @@ export default function Header() {
         >
           Ver Usuarios
         </Link>
+        */}
       </div>
 
       {/* Modal de Filtros */}
