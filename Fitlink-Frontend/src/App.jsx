@@ -3,11 +3,11 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import "./index.css";
-
 import LandingPage from "./pages/LandingPage"; 
 import Dashboard from "./pages/Dashboard"; 
 import Register from "./pages/Register";
 import Users from "./pages/Users";
+import PerfilUsuario from "./pages/PerfilUsuario";
 
 // Tailwind classes for the navigation links
 const NavLinkClasses = "px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150";
@@ -27,6 +27,9 @@ export default function App() {
           <Link to="/dashboard" className={NavLinkClasses}>
             Panel de Control
           </Link>
+          <Link to="/perfil" className={NavLinkClasses}>
+             Mi Perfil
+          </Link>
         </nav>
 
         {/* Routes take up the rest of the vertical space (flex-grow) */}
@@ -35,6 +38,7 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/register" element={<Register />} />
           <Route path="/users" element={<Users />} />
+          <Route path="/perfil" element={<PerfilUsuario />} />
           
           {/* Replaced fl-main with Tailwind classes */}
           <Route path="*" element={<main className="flex-grow p-10 text-center">
