@@ -13,12 +13,14 @@ export default function RegisterForm() {
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
 
+  const API_URL = import.meta.env.VITE_API_URL
+
   // Manejar cambios de texto
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Manejar subida de imagen
+  // Manejar subida de imagen (sin cambios)
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -34,9 +36,10 @@ export default function RegisterForm() {
     }
   };
 
-  // Validaciones del formulario
+  // Validaciones del formulario (sin cambios)
   const validate = () => {
     let newErrors = {};
+    // NOTA: Si 'id' es un email, deberías añadir validación de formato de email aquí.
     if (!formData.id.trim()) newErrors.id = "El ID es obligatorio";
     if (!formData.nombre.trim()) newErrors.nombre = "El nombre es obligatorio";
     if (!formData.biografia.trim())
@@ -47,8 +50,9 @@ export default function RegisterForm() {
     return newErrors;
   };
 
-  // Guardar en localStorage
-  const handleSubmit = (e) => {
+  // ***** handleSubmit (MODIFICADO) *****
+  // Ahora es 'async' y usa fetch para llamar al backend
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -56,38 +60,70 @@ export default function RegisterForm() {
       return;
     }
 
-    const storedUsers = JSON.parse(localStorage.getItem("users")) || [];
-
-    // Evitar duplicados en ID
-    if (storedUsers.some((user) => user.id === formData.id)) {
-      setErrors({ id: "Este ID ya está en uso" });
-      return;
-    }
-
-    storedUsers.push(formData);
-    localStorage.setItem("users", JSON.stringify(storedUsers));
-
-    setFormData({
-      id: "",
-      nombre: "",
-      biografia: "",
-      fechaNacimiento: "",
-      ciudad: "",
-      foto: "",
-    });
-
+    // Limpiar errores y mensajes anteriores
     setErrors({});
-    setMessage("✅ Usuario registrado con éxito");
+    setMessage("");
 
-    setTimeout(() => setMessage(""), 3000);
+    try {
+      // 1. Llamar al endpoint POST /users del backend
+      const response = await fetch(`${API_URL}/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData), // Enviamos el estado 'formData'
+      });
+
+      // 2. Obtener la respuesta del backend
+      const data = await response.json();
+
+      // 3. Manejar respuestas de error (ej. 409, 500)
+      if (!response.ok) {
+        // 'data.detail' es el mensaje de error que enviamos desde FastAPI
+        const errorMessage = data.detail || "Ocurrió un error desconocido";
+
+        if (response.status === 409) {
+          // 409: Conflicto (ID ya existe)
+          // Mostramos el error en el campo 'id'
+          setErrors({ id: errorMessage });
+        } else {
+          // Otro error (500, 422, etc.)
+          setMessage(`❌ Error: ${errorMessage}`);
+        }
+        return;
+      }
+
+      // 4. Manejar respuesta exitosa (status 201)
+      setMessage("✅ Usuario registrado con éxito");
+      setFormData({
+        id: "",
+        nombre: "",
+        biografia: "",
+        fechaNacimiento: "",
+        ciudad: "",
+        foto: "",
+      });
+
+      setTimeout(() => setMessage(""), 3000);
+
+    } catch (error) {
+      // 5. Manejar errores de red (ej. el backend está caído)
+      console.error("Error de conexión:", error);
+      setMessage("❌ Error de conexión. No se pudo contactar al servidor.");
+    }
   };
 
+  // --- El resto de tu JSX (Return) no necesita cambios ---
   return (
-    <div className="max-w-lg mx-auto bg-white p-6 shadow-lg rounded-2xl">
+    <div className="max-w-lg mx-auto bg-white p-6 shadow-lg rounded-2xl mt-3">
       <h2 className="text-2xl font-bold mb-4">Registro de Usuario</h2>
 
       {message && (
-        <div className="mb-4 p-2 bg-green-100 text-green-700 rounded">
+        <div className={`mb-4 p-2 rounded ${
+          message.startsWith("✅") 
+            ? "bg-green-100 text-green-700" 
+            : "bg-red-100 text-red-700"
+        }`}>
           {message}
         </div>
       )}
@@ -95,7 +131,7 @@ export default function RegisterForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* ID */}
         <div>
-          <label className="block font-medium">ID:</label>
+          <label className="block font-medium">ID (o Email):</label>
           <input
             type="text"
             name="id"
