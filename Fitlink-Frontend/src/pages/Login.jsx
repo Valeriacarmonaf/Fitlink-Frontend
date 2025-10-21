@@ -1,12 +1,14 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+// Se importa supabase para poder sincronizar la sesión obtenida del backend
+import { supabase } from '../lib/supabase.js';
 
 export default function LoginForm() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
 
-  // Asumiendo que VITE_API_URL está en tu archivo .env
-  // Ejemplo: VITE_API_URL=http://127.0.0.1:8000
+  // URL del backend (asegúrate de que esté en tu .env)
   const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
   const handleChange = (e) => {
@@ -15,9 +17,10 @@ export default function LoginForm() {
 
   const validate = () => {
     let newErrors = {};
-    // FIX 1: Añadida la validación para el campo 'identifier'
     if (!formData.email.trim()) {
-      newErrors.email = "El email o carnet es obligatorio";
+      newErrors.email = "El email es obligatorio";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "El formato del email no es válido";
     }
     if (!formData.password.trim()) {
       newErrors.password = "La contraseña es obligatoria";
@@ -38,6 +41,7 @@ export default function LoginForm() {
     setMessage("Iniciando sesión...");
 
     try {
+      // 1. Llamar al backend para la autenticación
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,39 +51,29 @@ export default function LoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        const errorMessage = data.detail || "Error desconocido al iniciar sesión";
-        setMessage(`❌ ${errorMessage}`);
-        return;
+        throw new Error(data.detail || "Error desconocido al iniciar sesión");
       }
 
-      // Login exitoso
-      setMessage("✅ Sesión iniciada con éxito");
-      console.log("Datos del usuario:", data.user);
-      console.log("Datos de sesión:", data.session);
-
-      // FIX 2: Acceder correctamente al objeto 'session' que devuelve el backend
-      if (data.session) {
-        localStorage.setItem("supabase_session", JSON.stringify(data.session));
-      }
+      // 2. ¡CRUCIAL! Sincronizar la sesión con el cliente de Supabase
+      // Esto le avisa a App.jsx que el usuario ha iniciado sesión.
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
       
-      // Redirigir al usuario al dashboard o a donde corresponda
-      // Por ejemplo, después de 1 segundo para que vea el mensaje de éxito.
-      setTimeout(() => {
-        // window.location.href = "/dashboard"; 
-      }, 1000);
-
-      // FIX 3: Limpiar el formulario usando la clave correcta 'identifier'
-      setFormData({ email: "", password: "" }); 
+      setMessage("✅ Sesión iniciada con éxito. Redirigiendo...");
+      // La redirección ahora es manejada por el listener en App.jsx
 
     } catch (error) {
-      console.error("Error de conexión:", error);
-      setMessage("❌ Error de conexión. No se pudo contactar al servidor.");
+      console.error("Error de inicio de sesión:", error);
+      setMessage(`❌ ${error.message}`);
     }
   };
-
+  
   const handleGoogleLogin = async () => {
     setMessage("Redirigiendo a Google...");
     try {
+      // Pedir a FastAPI la URL de OAuth
       const response = await fetch(`${API_URL}/auth/google`);
       const data = await response.json();
 
@@ -87,12 +81,12 @@ export default function LoginForm() {
         throw new Error(data.detail || "Error al iniciar sesión con Google");
       }
 
+      // Redirigir el navegador a la URL proporcionada
       if (data.oauth_url) {
         window.location.href = data.oauth_url;
       }
     } catch (error) {
-      console.error("Error al redirigir a Google:", error);
-      setMessage(`❌ ${error.message}`);
+       setMessage(`❌ Error: ${error.message}`);
     }
   };
 
@@ -101,10 +95,10 @@ export default function LoginForm() {
       <h2 className="text-2xl font-bold mb-4">Iniciar Sesión</h2>
 
       {message && (
-        <div className={`mb-4 p-2 rounded text-center ${
-          message.startsWith("✅") ? "bg-green-100 text-green-700" :
-          message.startsWith("❌") ? "bg-red-100 text-red-700" :
-          "bg-blue-100 text-blue-700"
+        <div className={`mb-4 p-3 rounded text-center font-medium ${
+          message.startsWith("✅") ? "bg-green-100 text-green-800" :
+          message.startsWith("❌") ? "bg-red-100 text-red-800" :
+          "bg-blue-100 text-blue-800"
         }`}>
           {message}
         </div>
@@ -114,14 +108,14 @@ export default function LoginForm() {
         <div>
           <label className="block font-medium">Email:</label>
           <input
-            type="text"
+            type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
             className="border p-2 w-full rounded"
+            required
           />
-          {/* FIX 4: Asegurarse de que el error del identificador se muestre */}
-          {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
         </div>
 
         <div>
@@ -132,18 +126,19 @@ export default function LoginForm() {
             value={formData.password}
             onChange={handleChange}
             className="border p-2 w-full rounded"
+            required
           />
-          {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+          {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
         </div>
 
         <button
           type="submit"
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 w-full"
+          className="bg-blue-600 text-white font-bold px-4 py-3 rounded hover:bg-blue-700 w-full transition-colors duration-200"
         >
           Iniciar Sesión
         </button>
       </form>
-
+      
       <div className="mt-6 text-center">
         <div className="relative my-4">
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
@@ -165,6 +160,10 @@ export default function LoginForm() {
           Iniciar Sesión con Google
         </button>
       </div>
+
+       <p className="text-center text-sm text-gray-600 !mt-4">
+          ¿No tienes una cuenta? <Link to="/register" className="font-medium text-blue-600 hover:underline">Regístrate aquí</Link>
+        </p>
     </div>
   );
 }
