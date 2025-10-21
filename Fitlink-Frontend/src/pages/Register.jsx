@@ -1,22 +1,22 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
     carnet: "",
+    email: "",
+    password: "",
     nombre: "",
     biografia: "",
     fechaNacimiento: "",
     ciudad: "",
     foto: "",
-    email: "",
-    password: "",
   });
 
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
-
-  const API_URL = "http://127.0.0.1:8000";
+  const navigate = useNavigate();
+  const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,13 +39,13 @@ export default function RegisterForm() {
 
   const validate = () => {
     let newErrors = {};
-    if (!formData.identifier.trim()) newErrors.email = "El email o carnet es obligatorio";
-    if (!formData.password.trim()) newErrors.password = "La contraseña es obligatoria";
-    else if (formData.password.length < 6) newErrors.password = "La contraseña debe tener al menos 6 caracteres";
     if (!formData.carnet.trim()) newErrors.carnet = "El carnet es obligatorio";
+    if (!formData.email.trim()) newErrors.email = "El email es obligatorio";
+    if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "El formato del email no es válido";
+    if (formData.password.length < 6) newErrors.password = "La contraseña debe tener al menos 6 caracteres";
     if (!formData.nombre.trim()) newErrors.nombre = "El nombre es obligatorio";
     if (!formData.fechaNacimiento) newErrors.fechaNacimiento = "La fecha de nacimiento es obligatoria";
-    if (!formData.ciudad.trim()) newErrors.ciudad = "La ciudad es obligatoria";
+    if (!formData.ciudad) newErrors.ciudad = "Debes seleccionar un municipio";
     return newErrors;
   };
 
@@ -57,9 +57,8 @@ export default function RegisterForm() {
       setMessage("");
       return;
     }
-
     setErrors({});
-    setMessage("Registrando usuario...");
+    setMessage("Registrando, por favor espera...");
 
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
@@ -71,78 +70,73 @@ export default function RegisterForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        const errorMessage = data.detail || "Ocurrió un error desconocido";
-        setMessage(`❌ ${errorMessage}`);
-        return;
+        throw new Error(data.detail || "Ocurrió un error durante el registro.");
       }
 
-      setMessage(`✅ ${data.message || "Usuario registrado con éxito."}`);
-      // Limpiar formulario
-      setFormData({
-        carnet: "", nombre: "", biografia: "", fechaNacimiento: "",
-        ciudad: "", foto: "", email: "", password: "",
-      });
-      setTimeout(() => setMessage(""), 5000);
+      setMessage("✅ ¡Registro exitoso! Serás redirigido para iniciar sesión.");
+      
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
 
     } catch (error) {
-      console.error("Error de conexión:", error);
-      setMessage("❌ Error de conexión. No se pudo contactar al servidor.");
+      setMessage(`❌ Error: ${error.message}`);
     }
   };
 
   return (
     <div className="max-w-lg mx-auto bg-white p-6 shadow-lg rounded-2xl mt-6">
-      <h2 className="text-2xl font-bold mb-4">Registro de Usuario</h2>
-
+      <h2 className="text-2xl font-bold mb-4 text-center">Crear una Cuenta</h2>
+      
       {message && (
-        <div className={`mb-4 p-2 rounded text-center ${
-          message.startsWith("✅") ? "bg-green-100 text-green-700" :
-          message.startsWith("❌") ? "bg-red-100 text-red-700" :
-          "bg-blue-100 text-blue-700"
+        <div className={`mb-4 p-3 rounded text-center font-medium ${
+          message.startsWith("✅") ? "bg-green-100 text-green-800" :
+          message.startsWith("❌") ? "bg-red-100 text-red-800" :
+          "bg-blue-100 text-blue-800"
         }`}>
           {message}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Datos de Perfil */}
         <div>
-          <label className="block font-medium">Email o Carnet:</label>
-          <input
-            type="text" // Cambiado de "email" a "text" para aceptar carnet
-            name="identifier" // antes era 'email'
-            value={formData.identifier}
-            onChange={handleChange}
-            className="border p-2 w-full rounded"
-          />
-          {/* ... */}
+          <label className="block font-medium">Carnet de Estudiante:</label>
+          <input type="text" name="carnet" value={formData.carnet} onChange={handleChange} className="border p-2 w-full rounded" required />
+          {errors.carnet && <p className="text-red-500 text-sm mt-1">{errors.carnet}</p>}
         </div>
+        
+        <div>
+          <label className="block font-medium">Email:</label>
+          <input type="email" name="email" value={formData.email} onChange={handleChange} className="border p-2 w-full rounded" required />
+          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+        </div>
+        
         <div>
           <label className="block font-medium">Contraseña:</label>
-          <input type="password" name="password" value={formData.password} onChange={handleChange} className="border p-2 w-full rounded" />
-          {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
-        </div>
-        
-        <div>
-          <label className="block font-medium">Nombre Completo:</label>
-          <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className="border p-2 w-full rounded" />
-          {errors.nombre && <p className="text-red-500 text-sm">{errors.nombre}</p>}
-        </div>
-        
-        <div>
-          <label className="block font-medium">Biografía:</label>
-          <textarea name="biografia" value={formData.biografia} onChange={handleChange} className="border p-2 w-full rounded" />
+          <input type="password" name="password" value={formData.password} onChange={handleChange} className="border p-2 w-full rounded" required />
+          {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
         </div>
 
         <div>
-          <label className="block font-medium">Fecha de nacimiento:</label>
-          <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="border p-2 w-full rounded" />
-          {errors.fechaNacimiento && <p className="text-red-500 text-sm">{errors.fechaNacimiento}</p>}
+          <label className="block font-medium">Nombre Completo:</label>
+          <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className="border p-2 w-full rounded" required />
+          {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
+        </div>
+
+        <div>
+          <label className="block font-medium">Biografía (opcional):</label>
+          <textarea name="biografia" value={formData.biografia} onChange={handleChange} className="border p-2 w-full rounded" />
+        </div>
+        
+        <div>
+          <label className="block font-medium">Fecha de Nacimiento:</label>
+          <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="border p-2 w-full rounded" required />
+          {errors.fechaNacimiento && <p className="text-red-500 text-sm mt-1">{errors.fechaNacimiento}</p>}
         </div>
         
         <div>
           <label className="block font-medium">Municipio:</label>
-          <select name="ciudad" value={formData.ciudad} onChange={handleChange} className="border p-2 w-full rounded">
+          <select name="ciudad" value={formData.ciudad} onChange={handleChange} className="border p-2 w-full rounded" required>
             <option value="">Selecciona un municipio</option>
             <option value="Libertador">Libertador</option>
             <option value="Chacao">Chacao</option>
@@ -150,10 +144,26 @@ export default function RegisterForm() {
             <option value="Sucre">Sucre</option>
             <option value="El Hatillo">El Hatillo</option>
           </select>
-          {errors.ciudad && <p className="text-red-500 text-sm">{errors.ciudad}</p>}
+          {errors.ciudad && <p className="text-red-500 text-sm mt-1">{errors.ciudad}</p>}
         </div>
 
-        <p className="text-center text-sm text-gray-600">
+        <div>
+          <label className="block font-medium">Foto de Perfil (opcional):</label>
+          <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm" />
+          {errors.foto && <p className="text-red-500 text-sm mt-1">{errors.foto}</p>}
+          {formData.foto && (
+            <img src={formData.foto} alt="Vista previa" className="w-20 h-20 rounded-full object-cover mt-2" />
+          )}
+        </div>
+        
+        <button
+          type="submit"
+          className="bg-blue-600 text-white font-bold px-4 py-3 rounded hover:bg-blue-700 w-full transition-colors duration-200"
+        >
+          Registrarse
+        </button>
+
+        <p className="text-center text-sm text-gray-600 !mt-4">
           ¿Ya tienes una cuenta? <Link to="/login" className="font-medium text-blue-600 hover:underline">Inicia sesión aquí</Link>
         </p>
       </form>

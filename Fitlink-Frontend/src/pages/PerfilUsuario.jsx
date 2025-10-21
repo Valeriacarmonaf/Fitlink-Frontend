@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Camera } from "lucide-react";
-import { supabase } from "../lib/supabaseClient"; // usa tu cliente existente
+import { supabase } from "../lib/supabase.js"; // usa tu cliente existente
 
 export default function PerfilUsuario() {
   const [perfil, setPerfil] = useState({

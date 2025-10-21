@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 export default function LoginForm() {
-  const [formData, setFormData] = useState({ identifier: "", password: "" });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
 
@@ -16,8 +16,8 @@ export default function LoginForm() {
   const validate = () => {
     let newErrors = {};
     // FIX 1: Añadida la validación para el campo 'identifier'
-    if (!formData.identifier.trim()) {
-      newErrors.identifier = "El email o carnet es obligatorio";
+    if (!formData.email.trim()) {
+      newErrors.email = "El email o carnet es obligatorio";
     }
     if (!formData.password.trim()) {
       newErrors.password = "La contraseña es obligatoria";
@@ -69,7 +69,7 @@ export default function LoginForm() {
       }, 1000);
 
       // FIX 3: Limpiar el formulario usando la clave correcta 'identifier'
-      setFormData({ identifier: "", password: "" }); 
+      setFormData({ email: "", password: "" }); 
 
     } catch (error) {
       console.error("Error de conexión:", error);
@@ -112,16 +112,16 @@ export default function LoginForm() {
 
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
-          <label className="block font-medium">Email o Carnet:</label>
+          <label className="block font-medium">Email:</label>
           <input
             type="text"
-            name="identifier"
-            value={formData.identifier}
+            name="email"
+            value={formData.email}
             onChange={handleChange}
             className="border p-2 w-full rounded"
           />
           {/* FIX 4: Asegurarse de que el error del identificador se muestre */}
-          {errors.identifier && <p className="text-red-500 text-sm">{errors.identifier}</p>}
+          {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
         </div>
 
         <div>
