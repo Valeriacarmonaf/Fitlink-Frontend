@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 export default function LoginForm() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+  const [formData, setFormData] = useState({ identifier: "", password: "" });
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
 
-  const API_URL = import.meta.env.VITE_API_URL
+  // Asumiendo que VITE_API_URL está en tu archivo .env
+  // Ejemplo: VITE_API_URL=http://127.0.0.1:8000
+  const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,11 +15,13 @@ export default function LoginForm() {
 
   const validate = () => {
     let newErrors = {};
-    if (!formData.email.trim()) newErrors.email = "El email es obligatorio";
-    if (!/\S+@\S+\.\S+/.test(formData.email))
-      newErrors.email = "El email no es válido";
-    if (!formData.password.trim())
+    // FIX 1: Añadida la validación para el campo 'identifier'
+    if (!formData.identifier.trim()) {
+      newErrors.identifier = "El email o carnet es obligatorio";
+    }
+    if (!formData.password.trim()) {
       newErrors.password = "La contraseña es obligatoria";
+    }
     return newErrors;
   };
 
@@ -29,7 +30,7 @@ export default function LoginForm() {
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      setMessage(""); // Limpiar mensaje de éxito/error anterior
+      setMessage("");
       return;
     }
 
@@ -39,9 +40,7 @@ export default function LoginForm() {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
@@ -56,16 +55,22 @@ export default function LoginForm() {
       // Login exitoso
       setMessage("✅ Sesión iniciada con éxito");
       console.log("Datos del usuario:", data.user);
-      console.log("Token de acceso:", data.access_token);
-      
-      // Aquí podrías guardar el token de acceso en localStorage o context/redux
-      localStorage.setItem("supabase_access_token", data.access_token);
-      localStorage.setItem("supabase_refresh_token", data.refresh_token);
-      // Redirigir al usuario al dashboard o a donde corresponda
-      // window.location.href = "/dashboard"; 
+      console.log("Datos de sesión:", data.session);
 
-      setTimeout(() => setMessage(""), 3000);
-      setFormData({ email: "", password: "" }); // Limpiar formulario
+      // FIX 2: Acceder correctamente al objeto 'session' que devuelve el backend
+      if (data.session) {
+        localStorage.setItem("supabase_session", JSON.stringify(data.session));
+      }
+      
+      // Redirigir al usuario al dashboard o a donde corresponda
+      // Por ejemplo, después de 1 segundo para que vea el mensaje de éxito.
+      setTimeout(() => {
+        // window.location.href = "/dashboard"; 
+      }, 1000);
+
+      // FIX 3: Limpiar el formulario usando la clave correcta 'identifier'
+      setFormData({ identifier: "", password: "" }); 
+
     } catch (error) {
       console.error("Error de conexión:", error);
       setMessage("❌ Error de conexión. No se pudo contactar al servidor.");
@@ -75,28 +80,19 @@ export default function LoginForm() {
   const handleGoogleLogin = async () => {
     setMessage("Redirigiendo a Google...");
     try {
-      // 1. Pedir a FastAPI la URL de OAuth de Supabase para Google
-      const response = await fetch(`${API_URL}/auth/google`, {
-        method: "GET",
-      });
+      const response = await fetch(`${API_URL}/auth/google`);
       const data = await response.json();
 
       if (!response.ok) {
-        const errorMessage = data.detail || "Error al iniciar sesión con Google";
-        setMessage(`❌ ${errorMessage}`);
-        return;
+        throw new Error(data.detail || "Error al iniciar sesión con Google");
       }
 
-      // 2. Redirigir al navegador a la URL proporcionada por FastAPI
       if (data.oauth_url) {
         window.location.href = data.oauth_url;
-      } else {
-        setMessage("❌ No se pudo obtener la URL de Google. Intente de nuevo.");
       }
-
     } catch (error) {
       console.error("Error al redirigir a Google:", error);
-      setMessage("❌ Error de conexión al intentar iniciar sesión con Google.");
+      setMessage(`❌ ${error.message}`);
     }
   };
 
@@ -105,30 +101,29 @@ export default function LoginForm() {
       <h2 className="text-2xl font-bold mb-4">Iniciar Sesión</h2>
 
       {message && (
-        <div className={`mb-4 p-2 rounded ${
+        <div className={`mb-4 p-2 rounded text-center ${
           message.startsWith("✅") ? "bg-green-100 text-green-700" :
           message.startsWith("❌") ? "bg-red-100 text-red-700" :
-          "bg-blue-100 text-blue-700" // Para el mensaje "Iniciando sesión..."
+          "bg-blue-100 text-blue-700"
         }`}>
           {message}
         </div>
       )}
 
       <form onSubmit={handleLogin} className="space-y-4">
-        {/* Email */}
         <div>
-          <label className="block font-medium">Email:</label>
+          <label className="block font-medium">Email o Carnet:</label>
           <input
-            type="email"
-            name="email"
-            value={formData.email}
+            type="text"
+            name="identifier"
+            value={formData.identifier}
             onChange={handleChange}
             className="border p-2 w-full rounded"
           />
-          {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+          {/* FIX 4: Asegurarse de que el error del identificador se muestre */}
+          {errors.identifier && <p className="text-red-500 text-sm">{errors.identifier}</p>}
         </div>
 
-        {/* Contraseña */}
         <div>
           <label className="block font-medium">Contraseña:</label>
           <input
@@ -150,16 +145,26 @@ export default function LoginForm() {
       </form>
 
       <div className="mt-6 text-center">
-        <p className="mb-4">O inicia sesión con:</p>
+        <div className="relative my-4">
+            <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-gray-500">O continúa con</span>
+            </div>
+        </div>
         <button
           onClick={handleGoogleLogin}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 flex items-center justify-center w-full"
+          className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 flex items-center justify-center w-full transition-colors duration-200"
         >
-          <img src="https://www.svgrepo.com/show/353526/google-icon.svg" alt="Google" className="w-5 h-5 mr-2"/>
+          <img 
+            src="https://www.svgrepo.com/show/475656/google-color.svg" 
+            alt="Google logo" 
+            className="w-5 h-5 mr-3"
+          />
           Iniciar Sesión con Google
         </button>
       </div>
-
     </div>
   );
 }
