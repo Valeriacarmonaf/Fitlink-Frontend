@@ -87,10 +87,8 @@ export default function LandingPage() {
 
   return (
     <main className="flex-grow p-10 bg-gray-50">
-      <section className="max-w-4xl mx-auto py-20 px-8 text-center rounded-2xl bg-white shadow-2xl mb-12">
-        <h1 className="text-6xl font-extrabold text-gray-900 mb-6">
-          Bienvenido a FitLink
-        </h1>
+      <section className="max-w-4xl mx-auto py-12 px-6 sm:py-20 sm:px-8 text-center rounded-2xl bg-white shadow-2xl mb-12">
+        <h1 className="text-5xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 mb-6 leading-tight break-words">Bienvenido a FitLink</h1>
         <p className="text-xl text-gray-600 mb-10">
           Conecta con personas para entrenar, correr o jugar en equipo.
         </p>

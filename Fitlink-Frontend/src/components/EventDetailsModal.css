@@ -1,18 +1,23 @@
 /* Overlay */
 .edm-overlay {
+  inset: 0;
   position: fixed; inset: 0;
   background: rgba(0,0,0,.55);
   backdrop-filter: blur(2px);
   display: grid; place-items: center;
   z-index: 60;
+  padding: 12px;
 }
 
 /* Card */
 .edm-card {
   position: relative;
-  width: min(92vw, 640px);
+  width: 92vw;
+  max-width: 640px;
+  max-height: 85vh;
+  overflow: auto;
   background: #fff;
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: 0 10px 35px rgba(0,0,0,.25);
   padding: 18px 18px 24px;
 }
@@ -61,6 +66,7 @@
 
 /* Responsive (en móviles el botón pasa a ancho completo) */
 @media (max-width: 480px) {
+  .edm-header h3 { font-size: 1.05rem; line-height: 1.25rem; }
   .edm-card { padding-bottom: 80px; } /* dejar espacio al botón */
   .edm-footer { position: static; margin-top: 12px; }
   .edm-match-btn { width: 100%; text-align: center; }

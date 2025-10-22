@@ -117,8 +117,8 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="flex-grow p-6 sm:p-10 bg-white">
-      <div className="max-w-6xl mx-auto">
+    <main className="flex-grow bg-white-50 px-4 sm:px-6 py-6">
+      <div className="max-w-7xl mx-auto">
         {/* Encabezado + botón: solo si NO hay búsqueda */}
         {!hasSearch && (
           <div className="flex items-center justify-between mb-6">

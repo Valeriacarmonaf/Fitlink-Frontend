@@ -90,21 +90,23 @@ export default function FiltersModal({ open, onClose, onApply }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="filters-title">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="filters-title">
       {/* Fondo oscuro */}
       <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
 
-      {/* Panel */}
+      {/* Panel: centrado, con altura máxima y scroll interno en el body */}
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="absolute left-1/2 top-10 -translate-x-1/2 w-[90vw] max-w-4xl
-                   bg-white text-slate-800 rounded-2xl shadow-2xl border border-blue-100"
         onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-4xl mx-auto bg-white text-slate-800 rounded-2xl shadow-2xl border border-blue-100
+                   max-h-[92vh] flex flex-col overflow-hidden"
+        role="dialog"
+        aria-modal="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-blue-100">
-          <h2 className="text-xl font-semibold text-slate-800">Filtros de búsqueda</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-blue-100 flex-shrink-0">
+          <h2 id="filters-title" className="text-xl font-semibold text-slate-800">Filtros de búsqueda</h2>
           <button
             onClick={onClose}
             className="p-2 rounded-full hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#6BA8FF]/40"
@@ -114,8 +116,8 @@ export default function FiltersModal({ open, onClose, onApply }) {
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-6 py-5 grid gap-8 md:grid-cols-2">
+        {/* Body: con scroll interno */}
+        <div className="px-6 py-5 grid gap-8 md:grid-cols-2 overflow-auto">
           {/* 1) Categorías */}
           <section>
             <h3 className="uppercase tracking-wide text-sm text-slate-600 mb-3">
@@ -153,8 +155,8 @@ export default function FiltersModal({ open, onClose, onApply }) {
           </section>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
+        {/* Footer: fijo (sin verse afectado por el scroll interno) */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-white/10 flex-shrink-0 bg-white">
           <button
             onClick={clearAll}
             type="button"

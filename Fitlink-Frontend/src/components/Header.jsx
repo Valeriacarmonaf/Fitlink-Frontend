@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { SlidersHorizontal, LogOut } from "lucide-react"; // Importar icono de LogOut
+import { SlidersHorizontal, LogOut, Search } from "lucide-react"; // Importar icono de Search
 import FiltersModal from "./FiltersModal";
 
 const stripEmojiPrefix = (s) =>
@@ -10,8 +10,14 @@ const stripEmojiPrefix = (s) =>
 export default function Header({ session, onLogout }) {
   const [openFilters, setOpenFilters] = useState(false);
   const [q, setQ] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const mobileInputRef = useRef(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (mobileSearchOpen && mobileInputRef.current) mobileInputRef.current.focus();
+  }, [mobileSearchOpen]);
 
   // (El resto de tus funciones de búsqueda y filtros no necesitan cambios)
   useEffect(() => {
@@ -45,8 +51,28 @@ export default function Header({ session, onLogout }) {
           FitLink
         </Link>
 
-        {/* Buscador + Filtros */}
-        <form onSubmit={submitSearch} className="flex-1 flex items-center justify-center gap-2" role="search">
+        {/* Botón búsqueda (solo móvil) */}
+        <button
+          type="button"
+          onClick={() => setMobileSearchOpen(true)}
+          className="sm:hidden ml-2 p-2 rounded-full hover:bg-white/20 transition"
+          aria-label="Buscar"
+        >
+          <Search size={18} />
+        </button>
+
+        {/* Botón filtros (solo móvil) */}
+        <button
+          type="button"
+          onClick={() => setOpenFilters(true)}
+          className="sm:hidden ml-2 p-2 rounded-full hover:bg-white/20 transition"
+          aria-label="Filtros"
+        >
+          <SlidersHorizontal size={18} />
+        </button>
+
+        {/* Buscador + Filtros (oculto en móvil) */}
+        <form onSubmit={submitSearch} className="hidden sm:flex flex-1 items-center justify-center gap-2" role="search">
           <input
             type="search"
             placeholder="Buscar actividades…"
@@ -65,7 +91,7 @@ export default function Header({ session, onLogout }) {
         </form>
 
         {/* 2. LÓGICA CONDICIONAL PARA LOS BOTONES DE AUTENTICACIÓN */}
-        <div className="flex items-center">
+        <div className="flex items-center ml-auto">
           {session ? (
             // Si el usuario ha iniciado sesión, muestra el botón de Cerrar Sesión
             <button
@@ -97,6 +123,36 @@ export default function Header({ session, onLogout }) {
           )}
         </div>
       </div>
+
+      {/* Panel de búsqueda móvil (se abre al tocar la lupa) */}
+      {mobileSearchOpen && (
+        <div className="sm:hidden bg-[#6BA8FF] p-3 border-t border-white/10">
+          <form
+            onSubmit={(e) => {
+              submitSearch(e);
+              setMobileSearchOpen(false);
+            }}
+            className="flex items-center gap-2"
+          >
+            <input
+              ref={mobileInputRef}
+              type="search"
+              placeholder="Buscar actividades…"
+              className="flex-1 h-10 px-3 rounded-full text-gray-800 focus:outline-none"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setMobileSearchOpen(false)}
+              className="p-2 text-white rounded-full hover:bg-white/20"
+              aria-label="Cerrar búsqueda"
+            >
+              ✕
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Modal de Filtros */}
       <FiltersModal
