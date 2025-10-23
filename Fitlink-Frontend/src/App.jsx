@@ -10,8 +10,15 @@ import Register from "./pages/Register";
 import Users from "./pages/Users";
 import PerfilUsuario from "./pages/PerfilUsuario";
 import LoginForm from './pages/Login';
+import Chats from "./pages/Chats.jsx";
+import ChatRoom from "./pages/ChatRoom.jsx";
 
 const NavLinkClasses = "px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150";
+
+function PrivateRoute({ session, children }) {
+  if (session === undefined) return null; // o spinner
+  return session ? children : <Navigate to="/login" replace />;
+}
 
 function App() {
   const [session, setSession] = useState(null);
@@ -86,7 +93,22 @@ function App() {
             path="/perfil" 
             element={session ? <PerfilUsuario session={session} /> : <Navigate to="/login" replace />} 
           />
-          
+          <Route
+            path="/chats"
+            element={
+              <PrivateRoute session={session}>
+                <Chats />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/chats/:chatId"
+            element={
+              <PrivateRoute session={session}>
+                <ChatRoom />
+              </PrivateRoute>
+            }
+          />
           {/* Ruta 404 */}
           <Route path="*" element={<div className="flex-grow p-10 text-center">
             <h1 className="text-3xl font-bold text-red-600">404 - Página No Encontrada</h1>
