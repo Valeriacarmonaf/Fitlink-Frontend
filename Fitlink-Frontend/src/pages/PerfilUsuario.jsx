@@ -82,7 +82,7 @@ export default function PerfilUsuario() {
   };
 
   const escanearCedula = async () => {
-    alert("Función de escaneo de cédula aún no implementada (placeholder).");
+    alert("Función de escaneo de cédula aún no implementada.");
   };
 
   return (

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 // Se importa supabase para poder sincronizar la sesión obtenida del backend
 import { supabase } from '../lib/supabase.js';
 
@@ -7,8 +7,8 @@ export default function LoginForm() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
 
-  // URL del backend (asegúrate de que esté en tu .env)
   const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
   const handleChange = (e) => {
@@ -62,7 +62,7 @@ export default function LoginForm() {
       });
       
       setMessage("✅ Sesión iniciada con éxito. Redirigiendo...");
-      // La redirección ahora es manejada por el listener en App.jsx
+      navigate('/dashboard'); 
 
     } catch (error) {
       console.error("Error de inicio de sesión:", error);
