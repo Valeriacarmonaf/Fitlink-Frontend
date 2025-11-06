@@ -14,6 +14,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import "./index.css";
 
+
 // Páginas
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
@@ -25,6 +26,7 @@ import Sugerencias from "./pages/Sugerencias";
 import RequireAuth from "./components/RequireAuth";
 import Chats from "./pages/Chats";
 import ChatRoom from "./pages/ChatRoom";
+import EventosExitosos from "./pages/EventosExitosos";
 
 const NavLinkClasses =
   "px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150";
@@ -45,6 +47,7 @@ function App() {
     "/perfil",
     "/sugerencias",
     "/chats",
+    "/eventos-exitosos",
   ]);
 
   // Lee params del hash (#a=b&c=d)
@@ -141,6 +144,9 @@ function App() {
             <Link to="/chats" className={NavLinkClasses}>
               Mis Chats
             </Link>
+            <Link to="/eventos-exitosos" className={NavLinkClasses}>
+              Eventos exitosos
+            </Link>
           </>
         )}
       </nav>
@@ -196,6 +202,10 @@ function App() {
                 <ChatRoom />
               </RequireAuth>
             }
+          />
+          <Route
+            path="/eventos-exitosos"
+            element={session ? <EventosExitosos /> : <Navigate to="/login" replace />}
           />
 
           {/* 404 */}

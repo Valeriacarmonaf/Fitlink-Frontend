@@ -53,6 +53,43 @@ async function listUsers() {
   return httpJSON("/users"); // ya tienes este endpoint en FastAPI
 }
 
+async  function successEventsList(token) {
+    const res = await fetch(`${API}/api/success-events`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(txt || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
+  
+async function successEventsCreate({ titulo, descripcion, fecha, municipio, files = [] }, token) {
+    const fd = new FormData();
+    fd.append("titulo", titulo);
+    fd.append("descripcion", descripcion);
+    fd.append("fecha", fecha);        // mm/dd/yyyy
+    fd.append("municipio", municipio);
+    (files || []).forEach((f) => fd.append("files", f));
+
+    const res = await fetch(`${API}/api/success-events`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+    
+      },
+      body: fd,
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(txt || `HTTP ${res.status}`);
+    }
+    return res.json();
+  }
+
 export const api = {
   stats,
   upcomingEvents,
