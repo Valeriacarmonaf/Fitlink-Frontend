@@ -52,19 +52,60 @@ export default function LandingPage() {
       : events.filter((e) => e.municipio === selectedZone);
   }, [selectedZone, events]);
 
-  // ----- placeholder de imagen por categoría (si no tienes imageUrl en BD) -----
-  const imageByCategory = (cat) => {
-    const k = (cat || "").toLowerCase();
-    if (k.includes("yoga") || k.includes("mente"))
-      return "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop";
-    if (k.includes("running") || k.includes("caminata"))
-      return "https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1200&auto=format&fit=crop";
-    if (k.includes("cicl"))
-      return "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop";
-    if (k.includes("equipo"))
-      return "https://images.unsplash.com/photo-1521417531039-94eaa7b5456f?q=80&w=1200&auto=format&fit=crop";
-    return "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop";
-  };
+  // Mapea una categoría textual a una imagen local (asegúrate de que existan en /public/img/)
+  function imageByCategory(cat) {
+    const catString =
+      typeof cat === "string"
+        ? cat.toLowerCase()
+        : typeof cat === "object" && cat?.nombre
+        ? String(cat.nombre).toLowerCase()
+        : "";
+
+    switch (catString) {
+      case "fútbol":
+      case "futbol":
+        return "/img/futbol.jpg";
+      case "baloncesto":
+        return "/img/baloncesto.jpg";
+      case "ciclismo":
+        return "/img/ciclismo.jpg";
+      case "yoga":
+        return "/img/yoga.jpg";
+      case "cocina":
+        return "/img/cocina.jpg";
+      default:
+        return null; // importante: que pueda seguir al siguiente fallback
+    }
+  }
+
+  // Prioriza URL del evento y luego el mapping por categoría.
+  // Ajusta los nombres de propiedades según tu shape real.
+  function getEventImage(ev) {
+    if (!ev || typeof ev !== "object") return "/img/placeholder-event.jpg";
+
+    // 1) URLs directas que vengan del backend/DB
+    const direct =
+      ev.portada_url ||
+      ev.banner_url ||
+      ev.image_url ||
+      ev.imagen_url ||
+      ev.cover_url ||
+      ev.foto_url;
+
+    if (direct) return direct;
+
+    // 2) Por categoría (string u objeto)
+    const byCat =
+      imageByCategory(ev.categoria) ||
+      imageByCategory(ev.category) ||
+      imageByCategory(ev?.categoria?.nombre) ||
+      imageByCategory(ev?.category?.name);
+
+    if (byCat) return byCat;
+
+    // 3) Fallback final local
+    return "/img/placeholder-event.jpg";
+  }
 
   // ---------- CARRUSEL POR PÁGINAS (máx 3 visibles) ----------
   const PAGE_SIZE = 3; // 1 en móvil (grid), 2 en tablet, 3 en desktop -> máx 3 por página
@@ -166,7 +207,7 @@ export default function LandingPage() {
                     key={e.id}
                     event={{
                       ...e,
-                      imageUrl: e.imageUrl || imageByCategory(e.categoria),
+                      imageUrl: getEventImage(e),
                     }}
                     onShowDetails={handleShowDetails}
                   />

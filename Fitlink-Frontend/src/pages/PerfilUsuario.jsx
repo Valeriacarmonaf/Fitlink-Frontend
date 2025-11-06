@@ -1,41 +1,57 @@
+// src/pages/PerfilUsuario.jsx
 import React, { useState, useEffect } from "react";
 import { Camera } from "lucide-react";
-import { supabase } from "../lib/supabase.js"; // usa tu cliente existente
+import { supabase } from "../lib/supabase.js";
 
 export default function PerfilUsuario() {
   const [perfil, setPerfil] = useState({
     nombre: "",
-    apellido: "",
-    edad: "",
-    cedula: "",
-    telefono: "",
-    nivelDeportivo: "",
+    biografia: "",
+    fecha_nacimiento: "",
+    municipio: "",
+    foto_url: "",
+    email: "",
   });
   const [loading, setLoading] = useState(false);
 
-  // 🧠 Cargar datos del perfil (opcional: luego lo asociaremos a un usuario logueado)
+  // Cargar el perfil del usuario logueado desde public.usuarios
   useEffect(() => {
     const cargarPerfil = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .limit(1)
-        .single();
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const uid = authData?.user?.id || null;
+        const uemail = authData?.user?.email || null;
+        if (!uid && !uemail) throw new Error("No hay sesión.");
 
-      if (error && error.code !== "PGRST116") {
-        console.error("Error al obtener perfil:", error.message);
-      } else if (data) {
-        setPerfil({
-          nombre: data.nombre || "",
-          apellido: data.apellido || "",
-          edad: data.edad || "",
-          cedula: data.cedula || "",
-          telefono: data.telefono || "",
-          nivelDeportivo: data.nivel_deportivo || "",
-        });
+        // Busca por id (preferible). Si tu RLS permite por email, también puedes filtrar por email.
+        const { data, error } = await supabase
+          .from("usuarios")
+          .select("id,email,nombre,biografia,fecha_nacimiento,municipio,foto_url")
+          .eq("id", uid)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setPerfil({
+            nombre: data.nombre || "",
+            biografia: data.biografia || "",
+            fecha_nacimiento: data.fecha_nacimiento || "",
+            municipio: data.municipio || "",
+            foto_url: data.foto_url || "",
+            email: data.email || uemail || "",
+          });
+        } else {
+          // Si no hay fila aún, prellenamos con el email de auth
+          setPerfil((p) => ({ ...p, email: uemail || "" }));
+        }
+      } catch (e) {
+        console.error("Error al obtener perfil:", e?.message);
+        alert("No se pudo cargar tu perfil.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     cargarPerfil();
   }, []);
@@ -44,45 +60,37 @@ export default function PerfilUsuario() {
     setPerfil({ ...perfil, [e.target.name]: e.target.value });
   };
 
-  const validarDatos = () => {
-    const telRegex = /^[0-9]{10}$/;
-    const cedulaRegex = /^[0-9]{8,10}$/;
-
-    if (!telRegex.test(perfil.telefono)) {
-      alert("El teléfono debe tener 10 dígitos numéricos.");
-      return false;
-    }
-    if (!cedulaRegex.test(perfil.cedula)) {
-      alert("La cédula no tiene un formato válido.");
-      return false;
-    }
-    return true;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validarDatos()) return;
     setLoading(true);
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData?.user?.id;
+      const uemail = authData?.user?.email;
 
-    const { error } = await supabase.from("profiles").upsert({
-      nombre: perfil.nombre,
-      apellido: perfil.apellido,
-      edad: perfil.edad ? parseInt(perfil.edad) : null,
-      cedula: perfil.cedula,
-      telefono: perfil.telefono,
-      nivel_deportivo: perfil.nivelDeportivo,
-    });
+      // upsert a public.usuarios (usa la PK compuesta id,email de tu esquema)
+      const { error } = await supabase.from("usuarios").upsert({
+        id: uid,
+        email: uemail,
+        nombre: perfil.nombre || null,
+        biografia: perfil.biografia || null,
+        fecha_nacimiento: perfil.fecha_nacimiento || null, // YYYY-MM-DD
+        municipio: perfil.municipio || null,
+        foto_url: perfil.foto_url || null,
+      });
 
-    setLoading(false);
-    if (error) {
-      alert("❌ Error al guardar el perfil: " + error.message);
-    } else {
+      if (error) throw error;
       alert("✅ Perfil guardado correctamente");
+    } catch (e) {
+      console.error(e);
+      alert("❌ Error al guardar el perfil: " + (e?.message || "desconocido"));
+    } finally {
+      setLoading(false);
     }
   };
 
   const escanearCedula = async () => {
-    alert("Función de escaneo de cédula aún no implementada.");
+    alert("Función de escaneo aún no implementada.");
   };
 
   return (
@@ -95,73 +103,56 @@ export default function PerfilUsuario() {
         <p className="text-center text-gray-600">Cargando...</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              name="nombre"
-              value={perfil.nombre}
-              onChange={handleChange}
-              placeholder="Nombre"
-              className="border rounded-lg p-2 w-full"
-              required
-            />
-            <input
-              name="apellido"
-              value={perfil.apellido}
-              onChange={handleChange}
-              placeholder="Apellido"
-              className="border rounded-lg p-2 w-full"
-              required
-            />
-          </div>
-
           <input
-            type="number"
-            name="edad"
-            value={perfil.edad}
+            name="nombre"
+            value={perfil.nombre}
             onChange={handleChange}
-            placeholder="Edad"
+            placeholder="Nombre"
             className="border rounded-lg p-2 w-full"
             required
           />
 
-          <div className="flex items-center gap-2">
+          <textarea
+            name="biografia"
+            value={perfil.biografia}
+            onChange={handleChange}
+            placeholder="Biografía"
+            className="border rounded-lg p-2 w-full min-h-24"
+          />
+
+          <input
+            type="date"
+            name="fecha_nacimiento"
+            value={perfil.fecha_nacimiento || ""}
+            onChange={handleChange}
+            className="border rounded-lg p-2 w-full"
+          />
+
+          <input
+            name="municipio"
+            value={perfil.municipio}
+            onChange={handleChange}
+            placeholder="Municipio"
+            className="border rounded-lg p-2 w-full"
+          />
+
+          <div className="flex gap-2">
             <input
-              name="cedula"
-              value={perfil.cedula}
+              name="foto_url"
+              value={perfil.foto_url}
               onChange={handleChange}
-              placeholder="Cédula"
+              placeholder="URL de foto"
               className="border rounded-lg p-2 w-full"
-              required
             />
             <button
               type="button"
               onClick={escanearCedula}
               className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+              title="(placeholder) Cámara"
             >
-              <Camera size={18} /> Escanear
+              <Camera size={18} /> Foto
             </button>
           </div>
-
-          <input
-            name="telefono"
-            value={perfil.telefono}
-            onChange={handleChange}
-            placeholder="Teléfono (10 dígitos)"
-            className="border rounded-lg p-2 w-full"
-            required
-          />
-
-          <select
-            name="nivelDeportivo"
-            value={perfil.nivelDeportivo}
-            onChange={handleChange}
-            className="border rounded-lg p-2 w-full"
-          >
-            <option value="">Selecciona tu nivel deportivo</option>
-            <option value="principiante">Principiante</option>
-            <option value="intermedio">Intermedio</option>
-            <option value="avanzado">Avanzado</option>
-          </select>
 
           <button
             type="submit"
