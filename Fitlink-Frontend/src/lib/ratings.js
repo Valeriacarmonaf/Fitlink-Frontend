@@ -2,32 +2,52 @@
 import { supabase } from "./supabase";
 
 /**
- * Guarda una nueva calificación de usuario
- * @param {string} raterId - ID del usuario que califica
- * @param {string} ratedUserId - ID del usuario calificado
- * @param {number} rating - Valor de la calificación (1–5)
+ * Crear o actualizar una calificación
  */
-export async function addRating(raterId, ratedUserId, rating) {
+export async function addOrUpdateRating(raterId, ratedUserId, rating) {
   if (raterId === ratedUserId) {
     throw new Error("Un usuario no puede calificarse a sí mismo.");
   }
 
+  // 1️⃣ Verificar si ya existe calificación previa
+  const { data: existingRating, error: fetchError } = await supabase
+    .from("ratings")
+    .select("*")
+    .eq("rater_id", raterId)
+    .eq("rated_user_id", ratedUserId)
+    .single();
+
+  if (fetchError && fetchError.code !== "PGRST116") {
+    throw fetchError;
+  }
+
+  // 2️⃣ Si existe, actualizar
+  if (existingRating) {
+    const { data, error } = await supabase
+      .from("ratings")
+      .update({ rating, updated_at: new Date() })
+      .eq("id", existingRating.id);
+
+    if (error) throw error;
+    return { updated: true, data };
+  }
+
+  // 3️⃣ Si no existe, crear nueva
   const { data, error } = await supabase
     .from("ratings")
     .insert([{ rater_id: raterId, rated_user_id: ratedUserId, rating }]);
 
   if (error) throw error;
-  return data;
+  return { created: true, data };
 }
 
 /**
- * Obtiene todas las calificaciones de un usuario
- * @param {string} userId - ID del usuario calificado
+ * Obtener TODAS las calificaciones que ha recibido un usuario
  */
 export async function getUserRatings(userId) {
   const { data, error } = await supabase
     .from("ratings")
-    .select("rating")
+    .select("*")
     .eq("rated_user_id", userId);
 
   if (error) throw error;
@@ -35,16 +55,17 @@ export async function getUserRatings(userId) {
 }
 
 /**
- * Calcula el promedio de calificaciones
- * @param {string} userId - ID del usuario calificado
+ * Obtener la calificación que el usuario actual ya hizo (si existe)
  */
-export async function getUserAverageRating(userId) {
-  const ratings = await getUserRatings(userId);
-  if (!ratings.length) return { average: 0, total: 0 };
+export async function getMyRating(raterId, ratedUserId) {
+  const { data, error } = await supabase
+    .from("ratings")
+    .select("*")
+    .eq("rater_id", raterId)
+    .eq("rated_user_id", ratedUserId)
+    .maybeSingle(); // evita error si no existe registro
 
-  const total = ratings.length;
-  const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
-  const average = sum / total;
-
-  return { average, total };
+  if (error) throw error;
+  return data;
 }
+
