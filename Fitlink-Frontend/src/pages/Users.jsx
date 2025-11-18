@@ -1,6 +1,6 @@
-
 import React, { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { Link } from "react-router-dom"; // <-- IMPORTANTE
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -18,7 +18,6 @@ export default function Users() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔹 Cargar usuarios desde el backend
   const loadUsers = async () => {
     try {
       setLoading(true);
@@ -42,7 +41,6 @@ export default function Users() {
     setTimeout(() => setMessage(""), 3000);
   };
 
-  // 🔹 Eliminar usuario
   const handleDelete = async (id) => {
     if (!window.confirm("¿Estás seguro de eliminar este usuario?")) return;
     try {
@@ -54,7 +52,6 @@ export default function Users() {
     }
   };
 
-  // 🔹 Editar usuario
   const handleEditClick = (user) => {
     setEditingUser(user.id);
     setEditData({
@@ -145,11 +142,13 @@ export default function Users() {
                 <th className="px-4 py-2 border">Acciones</th>
               </tr>
             </thead>
+
             <tbody>
               {users.map((user) => (
                 <tr key={user.id} className="text-center">
                   {editingUser === user.id ? (
                     <>
+                      {/* EDITANDO */}
                       <td className="px-4 py-2 border">{user.id}</td>
                       <td className="px-4 py-2 border">
                         <input
@@ -213,6 +212,7 @@ export default function Users() {
                     </>
                   ) : (
                     <>
+                      {/* LISTA NORMAL */}
                       <td className="px-4 py-2 border">{user.id}</td>
                       <td className="px-4 py-2 border">{user.nombre}</td>
                       <td className="px-4 py-2 border">{user.biografia}</td>
@@ -229,13 +229,24 @@ export default function Users() {
                           "Sin foto"
                         )}
                       </td>
+
                       <td className="px-4 py-2 border space-x-2">
+
+                        {/* 🔵 NUEVO: VER PERFIL PÚBLICO */}
+                        <Link
+                          to={`/perfil-publico/${user.id}`}
+                          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                        >
+                          Ver perfil
+                        </Link>
+
                         <button
                           onClick={() => handleEditClick(user)}
                           className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                         >
                           Editar
                         </button>
+
                         <button
                           onClick={() => handleDelete(user.id)}
                           className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
@@ -248,6 +259,7 @@ export default function Users() {
                 </tr>
               ))}
             </tbody>
+
           </table>
         </div>
       )}
