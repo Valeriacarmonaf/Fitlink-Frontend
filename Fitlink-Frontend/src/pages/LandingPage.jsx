@@ -9,12 +9,10 @@ const PrimaryButtonClasses =
   "inline-block px-10 py-4 text-lg bg-indigo-600 text-white font-bold rounded-xl shadow-xl hover:bg-indigo-700 transition duration-300 transform hover:scale-[1.02]";
 
 export default function LandingPage() {
-  // ----- datos -----
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // ----- modal -----
   const [selected, setSelected] = useState(null);
   const [open, setOpen] = useState(false);
   const handleShowDetails = (ev) => {
@@ -22,7 +20,6 @@ export default function LandingPage() {
     setOpen(true);
   };
 
-  // ----- carga desde backend -----
   useEffect(() => {
     (async () => {
       try {
@@ -39,7 +36,6 @@ export default function LandingPage() {
     })();
   }, []);
 
-  // ----- filtro por zona (municipio) -----
   const [selectedZone, setSelectedZone] = useState("Todas");
   const zones = useMemo(() => {
     const unique = new Set(events.map((e) => e.municipio).filter(Boolean));
@@ -52,7 +48,6 @@ export default function LandingPage() {
       : events.filter((e) => e.municipio === selectedZone);
   }, [selectedZone, events]);
 
-  // ----- placeholder de imagen por categoría (si no tienes imageUrl en BD) -----
   const imageByCategory = (cat) => {
     const k = (cat || "").toLowerCase();
     if (k.includes("yoga") || k.includes("mente"))
@@ -66,12 +61,10 @@ export default function LandingPage() {
     return "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop";
   };
 
-  // ---------- CARRUSEL POR PÁGINAS (máx 3 visibles) ----------
-  const PAGE_SIZE = 3; // 1 en móvil (grid), 2 en tablet, 3 en desktop -> máx 3 por página
+  const PAGE_SIZE = 3;
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const [page, setPage] = useState(0);
 
-  // resetea a la primera página cuando cambie el filtro o la cantidad
   useEffect(() => {
     setPage(0);
   }, [selectedZone, filtered.length]);
@@ -87,6 +80,8 @@ export default function LandingPage() {
 
   return (
     <main className="flex-grow p-10 bg-gray-50">
+      
+      {/* HERO */}
       <section className="max-w-4xl mx-auto py-20 px-8 text-center rounded-2xl bg-white shadow-2xl mb-12">
         <h1 className="text-6xl font-extrabold text-gray-900 mb-6">
           Bienvenido a FitLink
@@ -99,6 +94,24 @@ export default function LandingPage() {
         </Link>
       </section>
 
+      {/* 🔥 BLOQUE NUEVO: Explorar usuarios */}
+      <section className="max-w-3xl mx-auto mb-12 bg-white shadow-xl rounded-2xl p-8 text-center">
+        <h2 className="text-3xl font-semibold mb-4 text-gray-800">
+          Explorar Usuarios
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Descubre deportistas de tu zona, ve sus perfiles públicos y calificaciones.
+        </p>
+
+        <Link
+          to="/users"
+          className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-md hover:bg-indigo-700 transition"
+        >
+          Ver Usuarios
+        </Link>
+      </section>
+
+      {/* EVENTOS */}
       <section className="max-w-7xl mx-auto py-8 px-4 bg-white rounded-2xl shadow-xl">
         {/* Título + Filtro */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
@@ -131,36 +144,20 @@ export default function LandingPage() {
         )}
         {loading && <div className="text-gray-500 p-6">Cargando eventos…</div>}
 
-        {/* Carrusel paginado (máx 3 tarjetas visibles) */}
+        {/* Carrusel */}
         {!loading && filtered.length > 0 && (
           <div className="relative max-w-7xl mx-auto">
-            {/* Flecha izquierda – separada del contenido */}
             {totalPages > 1 && (
               <button
                 onClick={goPrev}
-                className="hidden sm:flex absolute -left-10 top-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-full shadow-xl hover:bg-gray-700 focus:outline-none z-20 transition-all duration-200"
-                aria-label="Anterior"
+                className="hidden sm:flex absolute -left-10 top-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-full shadow-xl hover:bg-gray-700 transition"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
+                ‹
               </button>
             )}
 
-            {/* PÁGINA ACTUAL */}
             <div className="w-full overflow-hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center transition-all duration-300">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
                 {pageEvents.map((e) => (
                   <EventReal
                     key={e.id}
@@ -174,51 +171,29 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Flecha derecha – separada del contenido */}
             {totalPages > 1 && (
               <button
                 onClick={goNext}
-                className="hidden sm:flex absolute -right-10 top-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-full shadow-xl hover:bg-gray-700 focus:outline-none z-20 transition-all duration-200"
-                aria-label="Siguiente"
+                className="hidden sm:flex absolute -right-10 top-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-full shadow-xl hover:bg-gray-700 transition"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
+                ›
               </button>
             )}
 
-            {/* Indicadores de página */}
-            {totalPages > 1 && (
-              <div className="mt-6 flex items-center justify-center gap-2">
-                {Array.from({ length: totalPages }).map((_, i) => (
-                  <button
-                    key={i}
-                    aria-label={`Ir a página ${i + 1}`}
-                    onClick={() => setPage(i)}
-                    className={`h-2 rounded-full transition-all ${
-                      i === page
-                        ? "bg-indigo-600 w-6"
-                        : "bg-gray-300 w-2 hover:bg-gray-400"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="mt-6 flex items-center justify-center gap-2">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setPage(i)}
+                  className={`h-2 rounded-full ${
+                    i === page ? "bg-indigo-600 w-6" : "bg-gray-300 w-2"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Sin eventos */}
         {!loading && filtered.length === 0 && (
           <p className="text-center text-gray-500 py-10">
             No hay eventos para esta zona.
@@ -226,7 +201,6 @@ export default function LandingPage() {
         )}
       </section>
 
-      {/* Modal detalles */}
       <EventDetailsModal
         isOpen={open}
         onClose={() => setOpen(false)}
