@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export default function CreateEventModal({ open, onClose, onCreated }) {
+  const [nombre, setNombre] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [categoria, setCategoria] = useState("");
   const [dia, setDia] = useState("");    // yyyy-mm-dd
@@ -12,6 +13,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
   if (!open) return null;
 
   const reset = () => {
+    setNombre("");
     setDescripcion("");
     setCategoria("");
     setDia("");
@@ -23,9 +25,8 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    // Validaciones mínimas
-    if (!descripcion.trim() || !categoria.trim() || !dia || !hora) {
-      alert("Completa descripción, categoría, fecha y hora");
+    if (!nombre.trim() || !descripcion.trim() || !categoria.trim() || !dia || !hora) {
+      alert("Completa título, descripción, categoría, fecha y hora");
       return;
     }
 
@@ -36,8 +37,23 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
       alert("Debes iniciar sesión");
       return;
     }
+    const nivelBackend =
+      nivel === "principiante"
+        ? "Principiante"
+        : nivel === "intermedio"
+        ? "Intermedio"
+        : "Avanzado";
 
-    const body = { descripcion, categoria, dia, hora, nivel, municipio: municipio || null };
+    // Preparamos el body EXACTAMENTE como lo espera FastAPI
+    const body = {
+      nombre,
+      descripcion,
+      categoria,
+      fecha: dia,           // 👈 el backend espera 'fecha'
+      hora,
+      nivel: nivelBackend,  // 👈 capitalizado
+      municipio: municipio || null,
+    };
 
     const res = await fetch("/api/events", {
       method: "POST",
@@ -73,7 +89,15 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
           <h2 className="text-xl font-semibold">¡Publica tu invitación deportiva!</h2>
           <button type="button" onClick={onClose} aria-label="Cerrar">✕</button>
         </div>
-
+        {/* TÍTULO DEL EVENTO */}
+        <label className="block text-sm font-medium">Título del evento</label>
+          <input
+          type="text"
+          className="w-full rounded-xl border border-gray-300 p-2 mb-2"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Ej: Fútbol en La Lagunita"
+        />
         <label className="block text-sm font-medium">Descripción de la invitación</label>
         <textarea
           className="w-full rounded-xl border border-gray-300 p-3 outline-none focus:ring"
