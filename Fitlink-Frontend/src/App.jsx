@@ -24,6 +24,8 @@ import PerfilUsuario from "./pages/PerfilUsuario";
 import PerfilPublico from "./pages/PerfilPublico";
 import LoginForm from './pages/Login';
 import Sugerencias from "./pages/Sugerencias";
+import Notificaciones from "./pages/Notificaciones";
+
 
 const NavLinkClasses = 
   "px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150";
@@ -65,6 +67,7 @@ function App() {
       <nav className="p-4 bg-white border-b border-gray-200 flex gap-6 justify-center shadow-sm">
         <Link to="/" className={NavLinkClasses}>Inicio</Link>
         <Link to="/dashboard" className={NavLinkClasses}>Panel de Control</Link>
+        <Link to="/notificaciones" className={NavLinkClasses}>Notificaciones</Link>
 
         {session && (
           <>
@@ -105,6 +108,11 @@ function App() {
           <Route 
             path="/sugerencias" 
             element={session ? <Sugerencias /> : <Navigate to="/login" replace />} 
+          />
+
+          <Route 
+            path="/notificaciones"
+            element={session ? <Notificaciones /> : <Navigate to="/login" replace />}
           />
 
           {/* ❌ Página No Encontrada */}
