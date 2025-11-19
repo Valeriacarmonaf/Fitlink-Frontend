@@ -21,8 +21,10 @@ import Dashboard from "./pages/Dashboard";
 import Register from "./pages/Register";
 import Users from "./pages/Users";
 import PerfilUsuario from "./pages/PerfilUsuario";
+import PerfilPublico from "./pages/PerfilPublico";
 import LoginForm from "./pages/Login";
 import Sugerencias from "./pages/Sugerencias";
+import NormasPage from "./pages/NormasPage";
 import RequireAuth from "./components/RequireAuth";
 import Chats from "./pages/Chats";
 import ChatRoom from "./pages/ChatRoom";
@@ -147,6 +149,9 @@ function App() {
             <Link to="/eventos-exitosos" className={NavLinkClasses}>
               Eventos exitosos
             </Link>
+            <Link to="/normas" className={NavLinkClasses}>
+              Normas
+            </Link>
           </>
         )}
       </nav>
@@ -168,6 +173,10 @@ function App() {
           <Route
             path="/users"
             element={session ? <Users /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/users/:id"
+            element={session ? <PerfilPublico /> : <Navigate to="/login" replace />}
           />
           <Route
             path="/perfil"
@@ -206,6 +215,10 @@ function App() {
           <Route
             path="/eventos-exitosos"
             element={session ? <EventosExitosos /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/normas"
+            element={session ? <NormasPage /> : <Navigate to="/login" replace />}
           />
 
           {/* 404 */}

@@ -1,5 +1,5 @@
 // src/pages/EventDetailsModal.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -36,6 +36,13 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export default function EventDetailsModal({ isOpen, onClose, event }) {
   const navigate = useNavigate();
+  // Estado para mensajes inline (avisos amistosos)
+  const [infoMsg, setInfoMsg] = useState("");
+  function showInfo(msg, ms = 3600) {
+    setInfoMsg(msg);
+    if (!msg) return;
+    setTimeout(() => setInfoMsg(""), ms);
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,6 +52,8 @@ export default function EventDetailsModal({ isOpen, onClose, event }) {
   }, [isOpen]);
 
   if (!isOpen || !event) return null;
+
+  
 
   // Llama al endpoint de join (idempotente) y navega al chat devuelto
   async function ensureJoinAndGo() {
@@ -93,8 +102,54 @@ export default function EventDetailsModal({ isOpen, onClose, event }) {
   }
 
   // “Ir al chat” (si ya estaba inscrito): reutilizamos join, es idempotente
+  async function ensureSuscriptionToEventAndGo() {
+    // 1) Validación de sesión (igual que ensureJoinAndGo)
+    const { data } = await supabase.auth.getSession();
+    if (!data?.session) {
+      alert("Inicia sesión para continuar.");
+      return navigate("/login");
+    }
+
+    const user = data.session.user;
+    const userId = user?.id;
+    if (!userId) {
+      console.error("No se pudo obtener user id desde la sesión");
+      alert("No se pudo verificar la sesión. Intenta de nuevo.");
+      return;
+    }
+
+    // 2) Verificar en la tabla public.event_participants si existe registro
+    try {
+      const { data: rows, error } = await supabase
+        .from("event_participants")
+        .select("id")
+        .eq("evento_id", event.id)
+        .eq("user_id", userId)
+        .limit(1);
+
+      if (error) {
+        console.error("Error consultando event_participants:", error);
+        alert("No se pudo comprobar la inscripción. Intenta de nuevo más tarde.");
+        return;
+      }
+
+      const isRegistered = Array.isArray(rows) && rows.length > 0;
+      if (!isRegistered) {
+        // Mensaje amistoso en la vista
+        showInfo("No te has inscrito en este evento", 4500);
+        return;
+      }
+
+      // 3) Si está inscrito, procedemos como ensureJoinAndGo para obtener/navegar al chat
+      await ensureJoinAndGo();
+    } catch (err) {
+      console.error("Fallo comprobando inscripción:", err);
+      alert("Error al verificar inscripción. Vuelve a intentarlo.");
+    }
+  }
+
   async function handleGoChat() {
-    await ensureJoinAndGo();
+    await ensureSuscriptionToEventAndGo();
   }
 
   return (
@@ -114,6 +169,14 @@ export default function EventDetailsModal({ isOpen, onClose, event }) {
         </div>
 
         <div className="h-1 bg-blue-700 opacity-80 rounded mt-2 mb-3" />
+        {infoMsg ? (
+          <div className="mb-3">
+            <div className="w-full rounded-md border px-3 py-2 text-sm bg-yellow-50 border-yellow-200 text-yellow-800" role="status">
+              {infoMsg}
+            </div>
+          </div>
+        ) : null}
+
 
         <div className="text-[clamp(.95rem,2.4vw,1.05rem)] text-gray-800 max-h-[60vh] overflow-y-auto">
           <div className="flex items-start gap-2 my-2">
