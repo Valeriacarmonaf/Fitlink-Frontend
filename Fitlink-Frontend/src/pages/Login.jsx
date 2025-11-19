@@ -6,6 +6,7 @@ export default function LoginForm() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
+  const [isBlocked, setIsBlocked] = useState(false);
   const navigate = useNavigate();
 
   const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
@@ -47,7 +48,16 @@ export default function LoginForm() {
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || "Error desconocido");
+      if (!response.ok) {
+        // Cuenta bloqueada por reportes
+        if (response.status === 403) {
+          const detail = data.detail || 'Cuenta deshabilitada.';
+          setMessage(`❌ ${detail}`);
+          setIsBlocked(true);
+          return;
+        }
+        throw new Error(data.detail || "Error desconocido");
+      }
 
       // Sincroniza sesión con Supabase
       await supabase.auth.setSession({
@@ -108,6 +118,7 @@ export default function LoginForm() {
             name="email"
             value={formData.email}
             onChange={handleChange}
+            disabled={isBlocked}
             className="border p-2 w-full rounded"
             required
           />
@@ -123,6 +134,7 @@ export default function LoginForm() {
             name="password"
             value={formData.password}
             onChange={handleChange}
+            disabled={isBlocked}
             className="border p-2 w-full rounded"
             required
           />
@@ -133,7 +145,8 @@ export default function LoginForm() {
 
         <button
           type="submit"
-          className="bg-blue-600 text-white font-bold px-4 py-3 rounded hover:bg-blue-700 w-full transition-colors duration-200"
+          disabled={isBlocked}
+          className={`bg-blue-600 text-white font-bold px-4 py-3 rounded hover:bg-blue-700 w-full transition-colors duration-200 ${isBlocked ? 'opacity-50 cursor-not-allowed hover:bg-blue-600' : ''}`}
         >
           Iniciar Sesión
         </button>
@@ -150,7 +163,8 @@ export default function LoginForm() {
         </div>
         <button
           onClick={handleGoogleLogin}
-          className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 flex items-center justify-center w-full transition-colors duration-200"
+          disabled={isBlocked}
+          className={`bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-50 flex items-center justify-center w-full transition-colors duration-200 ${isBlocked ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <img
             src="https://www.svgrepo.com/show/475656/google-color.svg"
