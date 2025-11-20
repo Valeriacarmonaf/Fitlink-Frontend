@@ -1,3 +1,4 @@
+// src/pages/Notificaciones.jsx
 import React, { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
@@ -5,15 +6,12 @@ export default function Notificaciones({ session }) {
   const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Obtener el usuario actual desde la session prop
-  const currentUser = session?.user;
-
   useEffect(() => {
-    if (!currentUser?.id) return;
+    if (!session) return;
 
-    async function loadNotifications() {
+    async function load() {
       try {
-        const data = await api.getNotifications(); // ← Sin parámetros
+        const data = await api.getNotifications();
         setNotifs(data);
       } catch (error) {
         console.error("Error cargando notificaciones:", error);
@@ -22,20 +20,17 @@ export default function Notificaciones({ session }) {
       }
     }
 
-    loadNotifications();
-  }, [currentUser]);
+    load();
+  }, [session]);
 
   const marcarLeida = async (id) => {
     try {
       await api.markAsRead(id);
       setNotifs((prev) =>
-        prev.map((n) =>
-          n.id === id ? { ...n, leida: true } : n
-        )
+        prev.map((n) => (n.id === id ? { ...n, leida: true } : n))
       );
     } catch (error) {
-      console.error("Error marcando como leída:", error);
-      alert("Error al marcar como leída");
+      alert("Error marcando como leída");
     }
   };
 
@@ -62,7 +57,7 @@ export default function Notificaciones({ session }) {
               {!n.leida && (
                 <button
                   onClick={() => marcarLeida(n.id)}
-                  className="mt-2 text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                  className="mt-2 text-sm bg-blue-600 text-white px-3 py-1 rounded"
                 >
                   Marcar como leída
                 </button>
