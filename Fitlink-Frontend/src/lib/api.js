@@ -17,24 +17,57 @@ async function http(url, options = {}) {
 }
 
 export const api = {
-  /** Próximos eventos (para Landing / carrusel) */
+  /** ------------------ EVENTOS --------------------- */
   upcomingEvents(limit = 50) {
     return http(`${API}/api/events/upcoming?limit=${limit}`);
   },
 
-  /** Listado general con filtros opcionales (por si lo necesitas) */
   events(params = {}) {
     const qs = new URLSearchParams(
       Object.fromEntries(
-        Object.entries(params).filter(([, v]) => v !== undefined && v !== null && `${v}`.length)
+        Object.entries(params).filter(
+          ([, v]) => v !== undefined && v !== null && `${v}`.length
+        )
       )
     );
-    const url = qs.toString() ? `${API}/api/events?${qs}` : `${API}/api/events`;
+    const url = qs.toString()
+      ? `${API}/api/events?${qs}`
+      : `${API}/api/events`;
     return http(url);
   },
 
-  /** KPIs del dashboard (si tu backend lo expone; si no, bórralo donde lo uses) */
   stats() {
-    return http(`${API}/api/stats`).catch(() => ({ usuarios: 0, categorias: 0, eventosProximos: 0 }));
+    return http(`${API}/api/stats`).catch(() => ({
+      usuarios: 0,
+      categorias: 0,
+      eventosProximos: 0,
+    }));
+  },
+
+  /** ------------------ NOTIFICACIONES --------------------- */
+
+  /** Obtener notificaciones del usuario */
+  getNotifications(email) {
+    return http(`${API}/api/notificaciones/${email}`);
+  },
+
+  /** Marcar una notificación como leída */
+  markAsRead(id) {
+    return http(`${API}/api/notificaciones/leer/${id}`, {
+      method: "POST",
+    });
+  },
+
+  /** Obtener preferencias del usuario */
+  getNotificationPreferences(email) {
+    return http(`${API}/api/notificaciones/preferencias/${email}`);
+  },
+
+  /** Guardar preferencias del usuario */
+  saveNotificationPreferences(email, prefs) {
+    return http(`${API}/api/notificaciones/preferencias/${email}`, {
+      method: "POST",
+      body: JSON.stringify(prefs),
+    });
   },
 };

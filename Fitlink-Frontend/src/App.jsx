@@ -1,25 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
+import { 
+  BrowserRouter, 
+  Routes, 
+  Route, 
+  Link, 
+  useNavigate, 
+  Navigate, 
+  useParams 
+} from 'react-router-dom';
+
 import { supabase } from './lib/supabase.js'; 
+
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import "./index.css";
 
-// Importa tus páginas
-import LandingPage from "./pages/LandingPage"; 
-import Dashboard from "./pages/Dashboard"; 
+// Páginas
+import LandingPage from "./pages/LandingPage";
+import Dashboard from "./pages/Dashboard";
 import Register from "./pages/Register";
 import Users from "./pages/Users";
 import PerfilUsuario from "./pages/PerfilUsuario";
+import PerfilPublico from "./pages/PerfilPublico";
 import LoginForm from './pages/Login';
-import Sugerencias from "./pages/Sugerencias"; // <-- IMPORTANTE
+import Sugerencias from "./pages/Sugerencias";
+import Notificaciones from "./pages/Notificaciones";
 
-const NavLinkClasses = "px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150";
+
+const NavLinkClasses = 
+  "px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150";
+
+// ⭐ Wrapper para pasar el parámetro dinámico a PerfilPublico
+function PerfilPublicoWrapper() {
+  const { id } = useParams();
+  return <PerfilPublico userId={id} />;
+}
 
 function App() {
   const [session, setSession] = useState(null);
   const navigate = useNavigate();
 
+  // Mantener sesión sincronizada con Supabase
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -27,7 +48,6 @@ function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      // ... (tu lógica de navegación de SIGNED_IN/OUT)
     });
 
     return () => subscription.unsubscribe();
@@ -39,63 +59,82 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      
+      {/* HEADER */}
       <Header session={session} onLogout={handleLogout} />
 
+      {/* NAVBAR */}
       <nav className="p-4 bg-white border-b border-gray-200 flex gap-6 justify-center shadow-sm">
         <Link to="/" className={NavLinkClasses}>Inicio</Link>
         <Link to="/dashboard" className={NavLinkClasses}>Panel de Control</Link>
-        
+        <Link to="/notificaciones" className={NavLinkClasses}>Notificaciones</Link>
+
         {session && (
           <>
             <Link to="/perfil" className={NavLinkClasses}>Mi Perfil</Link>
-            {/* --- ENLACE AÑADIDO --- */}
             <Link to="/sugerencias" className={NavLinkClasses}>Sugerencias</Link>
           </>
         )}
       </nav>
 
+      {/* CONTENIDO */}
       <main className="flex-grow">
         <Routes>
-          {/* Rutas Públicas */}
+
+          {/* 🌍 Rutas Públicas */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<LoginForm />} />
-          
-          {/* Rutas Protegidas */}
+
+          {/* ⭐ PERFIL PÚBLICO */}
+          <Route path="/perfil-publico/:id" element={<PerfilPublicoWrapper />} />
+
+          {/* 🔒 Rutas Protegidas */}
           <Route 
             path="/dashboard" 
             element={session ? <Dashboard /> : <Navigate to="/login" replace />} 
           />
+
           <Route 
             path="/users" 
             element={session ? <Users /> : <Navigate to="/login" replace />} 
           />
+
           <Route 
             path="/perfil" 
             element={session ? <PerfilUsuario session={session} /> : <Navigate to="/login" replace />} 
           />
-          
-          {/* --- RUTA AÑADIDA --- */}
+
           <Route 
             path="/sugerencias" 
             element={session ? <Sugerencias /> : <Navigate to="/login" replace />} 
           />
-          
-          {/* Ruta 404 */}
-          <Route path="*" element={
-            <div className="flex-grow p-10 text-center">
-              <h1 className="text-3xl font-bold text-red-600">404 - Página No Encontrada</h1>
-            </div>} 
+
+          <Route 
+            path="/notificaciones"
+            element={session ? <Notificaciones /> : <Navigate to="/login" replace />}
           />
+
+          {/* ❌ Página No Encontrada */}
+          <Route 
+            path="*" 
+            element={
+              <div className="flex-grow p-10 text-center">
+                <h1 className="text-3xl font-bold text-red-600">404 - Página No Encontrada</h1>
+              </div>
+            } 
+          />
+
         </Routes>
       </main>
 
+      {/* FOOTER */}
       <Footer />
     </div>
   );
 }
 
-// Envuelve App con el Router
+// 🚀 Wrapper final con el Router
 export default function AppWrapper() {
   return (
     <BrowserRouter>

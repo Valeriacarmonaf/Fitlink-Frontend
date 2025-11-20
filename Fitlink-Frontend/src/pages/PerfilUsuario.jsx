@@ -190,6 +190,10 @@ export default function PerfilUsuario({ session }) {
     }
   };
 
+  const handlePrefsChange = (e) => {
+    setPrefs({ ...prefs, [e.target.name]: e.target.checked });
+  };
+
   const validarDatos = () => {
     const telRegex = /^[0-9]{10}$/;
     
@@ -434,7 +438,7 @@ export default function PerfilUsuario({ session }) {
             disabled={loading || uploading}
             className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
           >
-            {loading ? "Guardando..." : "Guardar Perfil"}
+            {loading ? "Guardando..." : "Guardar Cambios"}
           </button>
         </form>
       )}

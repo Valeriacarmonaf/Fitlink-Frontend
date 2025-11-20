@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Star } from "lucide-react";
 
-export default function RatingStars({ value = 0, onRate, disabled = false }) {
+export default function RatingStars({ rating = 0, onRate, disabled = false }) {
   const [hover, setHover] = useState(0);
 
   return (
@@ -12,7 +12,9 @@ export default function RatingStars({ value = 0, onRate, disabled = false }) {
           key={star}
           size={28}
           className={`cursor-pointer transition-colors ${
-            (hover || value) >= star ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+            (hover || rating) >= star
+              ? "fill-yellow-400 text-yellow-400"
+              : "text-gray-300"
           } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
           onMouseEnter={() => !disabled && setHover(star)}
           onMouseLeave={() => setHover(0)}
