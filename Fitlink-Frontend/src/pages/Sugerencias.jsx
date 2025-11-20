@@ -72,9 +72,8 @@ function UserSuggestionBadge({ reason }) {
 // --- NUEVO: Tarjeta de Usuario ---
 function UserCard({ user }) {
   return (
-    <Link 
-      to={`/users/${user.id}`} // Asumiendo que tienes una ruta de perfil de usuario
-      className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105"
+    <div 
+      className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 cursor-default" // Cambiado a cursor-default
     >
       <img 
         src={user.foto_url || `https://ui-avatars.com/api/?name=${user.nombre}&background=random`} 
@@ -87,10 +86,9 @@ function UserCard({ user }) {
         <p className="text-sm text-gray-600">{user.municipio}</p>
         <p className="text-sm text-gray-500 mt-2 line-clamp-2">{user.biografia}</p>
       </div>
-    </Link>
+    </div>
   );
 }
-
 
 // --- Componente Principal de la Página (MODIFICADO) ---
 export default function Sugerencias() {

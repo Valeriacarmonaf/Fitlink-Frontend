@@ -91,10 +91,61 @@ async function successEventsCreate({ titulo, descripcion, fecha, municipio, file
   }
 
 export const api = {
-  stats,
-  upcomingEvents,
-  searchEvents,
+  /** ------------------ EVENTOS --------------------- */
+  upcomingEvents(limit = 50) {
+    return http(`${API}/api/events/upcoming?limit=${limit}`);
+  },
+
+  events(params = {}) {
+    const qs = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params).filter(
+          ([, v]) => v !== undefined && v !== null && `${v}`.length
+        )
+      )
+    );
+    const url = qs.toString()
+      ? `${API}/api/events?${qs}`
+      : `${API}/api/events`;
+    return http(url);
+  },
+
+  stats() {
+    return http(`${API}/api/stats`).catch(() => ({
+      usuarios: 0,
+      categorias: 0,
+      eventosProximos: 0,
+    }));
+  },
+
+  /** ------------------ NOTIFICACIONES --------------------- */
+
+  /** Obtener notificaciones del usuario */
+  getNotifications(email) {
+    return http(`${API}/api/notificaciones/${email}`);
+  },
+
+  /** Marcar una notificación como leída */
+  markAsRead(id) {
+    return http(`${API}/api/notificaciones/leer/${id}`, {
+      method: "POST",
+    });
+  },
+
+  /** Obtener preferencias del usuario */
+  getNotificationPreferences(email) {
+    return http(`${API}/api/notificaciones/preferencias/${email}`);
+  },
+    
   listUsers,
+    
+  /** Guardar preferencias del usuario */
+  saveNotificationPreferences(email, prefs) {
+    return http(`${API}/api/notificaciones/preferencias/${email}`, {
+      method: "POST",
+      body: JSON.stringify(prefs),
+    });
+  },
 };
 
 export default api;

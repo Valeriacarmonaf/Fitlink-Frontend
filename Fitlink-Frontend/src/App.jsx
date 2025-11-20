@@ -14,7 +14,6 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import "./index.css";
 
-
 // Páginas
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
@@ -32,6 +31,12 @@ import EventosExitosos from "./pages/EventosExitosos";
 
 const NavLinkClasses =
   "px-4 py-2 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition duration-150";
+
+// ⭐ Wrapper para pasar el parámetro dinámico a PerfilPublico
+function PerfilPublicoWrapper() {
+  const { id } = useParams();
+  return <PerfilPublico userId={id} />;
+}
 
 function App() {
   const [session, setSession] = useState(null);
@@ -125,8 +130,11 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      
+      {/* HEADER */}
       <Header session={session} onLogout={handleLogout} />
 
+      {/* NAVBAR */}
       <nav className="p-4 bg-white border-b border-gray-200 flex gap-6 justify-center shadow-sm">
         <Link to="/" className={NavLinkClasses}>
           Inicio
@@ -156,6 +164,7 @@ function App() {
         )}
       </nav>
 
+      {/* CONTENIDO */}
       <main className="flex-grow">
         <Routes>
           {/* Públicas */}
@@ -232,9 +241,21 @@ function App() {
               </div>
             }
           />
+
+          {/* ❌ Página No Encontrada */}
+          <Route 
+            path="*" 
+            element={
+              <div className="flex-grow p-10 text-center">
+                <h1 className="text-3xl font-bold text-red-600">404 - Página No Encontrada</h1>
+              </div>
+            } 
+          />
+
         </Routes>
       </main>
 
+      {/* FOOTER */}
       <Footer />
     </div>
   );

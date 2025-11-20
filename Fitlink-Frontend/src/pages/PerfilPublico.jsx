@@ -2,32 +2,33 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import RatingStars from "../components/RatingStars";
-import { getUserRatings, addRating, getUserAverageRating } from "../lib/ratings";
+import { getUserRatings, addOrUpdateRating, getMyRating } from "../lib/ratings";
+import { supabase } from "../lib/supabase";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 export default function PerfilPublico({ userId }) {
   const params = useParams();
   const resolvedUserId = userId || params?.id;
+  const { id } = useParams();
   const [perfil, setPerfil] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
   const [ratings, setRatings] = useState([]);
   const [average, setAverage] = useState(0);
   const [error, setError] = useState(null);
   const [reportMessage, setReportMessage] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedReason, setSelectedReason] = useState('');
+  const [myRating, setMyRating] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // 🧑‍💻 Usuario logueado
+  // Obtener sesión del usuario actual
   useEffect(() => {
-    async function fetchUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-    }
-    fetchUser();
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUser(data.user);
+    });
   }, []);
 
-  // 👤 Perfil público que se está viendo
+  // Cargar datos del perfil
   useEffect(() => {
     async function fetchProfile() {
       setError(null);
@@ -75,35 +76,55 @@ export default function PerfilPublico({ userId }) {
     fetchProfile();
   }, [resolvedUserId]);
 
-  // ⭐ Calificaciones de ese perfil
+  // Cargar calificaciones del perfil y del usuario actual
   useEffect(() => {
-    async function fetchRatings() {
-      if (!perfil) return;
-      const info = await getUserAverageRating(perfil.id);
-      setAverage(info.average.toFixed(1));
-      const data = await getUserRatings(perfil.id);
-      setRatings(data);
+    if (!id || !currentUser) return;
+
+    async function loadRatings() {
+      const r = await getUserRatings(id);
+      setRatings(r);
+
+      // calcular promedio
+      if (r.length > 0) {
+        const avg = r.reduce((acc, x) => acc + x.rating, 0) / r.length;
+        setAverage(avg.toFixed(1));
+      }
+
+      // cargar calificación del usuario actual
+      const mine = await getMyRating(currentUser.id, id);
+      setMyRating(mine?.rating || null);
     }
-    fetchRatings();
-  }, [perfil]);
+
+    loadRatings();
+  }, [id, currentUser]);
+
+  if (!perfil) return <p className="p-10 text-center">Cargando perfil...</p>;
 
   const handleRate = async (value) => {
-    if (!currentUser || !perfil) return;
+    if (!currentUser) return;
+
     if (currentUser.id === perfil.id) {
       alert("No puedes calificarte a ti mismo.");
       return;
     }
 
     try {
-      await addRating(currentUser.id, perfil.id, value);
-      const updated = await getUserRatings(perfil.id);
-      setRatings(updated);
-      const avg = updated.reduce((acc, r) => acc + r.rating, 0) / updated.length;
+      await addOrUpdateRating(currentUser.id, perfil.id, value);
+
+      // recargar ratings
+      const r = await getUserRatings(perfil.id);
+      setRatings(r);
+      const avg = r.reduce((acc, x) => acc + x.rating, 0) / r.length;
       setAverage(avg.toFixed(1));
-      alert(`✅ Calificaste con ${value} estrellas`);
+
+      // recargar mi rating
+      const mine = await getMyRating(currentUser.id, perfil.id);
+      setMyRating(mine?.rating || null);
+
+      alert("¡Calificación registrada!");
     } catch (err) {
       console.error(err);
-      alert("Error al registrar la calificación.");
+      alert("Error al guardar tu calificación");
     }
   };
 
@@ -155,18 +176,17 @@ export default function PerfilPublico({ userId }) {
   if (!perfil) return <p className="p-4">Cargando perfil...</p>;
 
   return (
-    <div className="p-6 max-w-lg mx-auto bg-white rounded-2xl shadow-md">
-      <h1 className="text-2xl font-semibold mb-2">
-        {perfil.nombre} {perfil.apellido}
-      </h1>
-      <p className="text-gray-500 mb-2">Teléfono: {perfil.telefono}</p>
-      <p className="text-gray-500 mb-4">
-        Nivel deportivo: {perfil.nivel_deportivo}
-      </p>
+    <div className="max-w-2xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-3">{perfil.nombre}</h1>
 
-      <div className="mb-4 text-center">
-        <p className="text-lg font-medium text-gray-800">
-          ⭐ Promedio: {average} / 5 ({ratings.length} evaluaciones)
+      {/* ------------------- Rating público ------------------- */}
+      <div className="mb-4">
+        <p className="text-xl font-semibold">Calificación:</p>
+        <p className="text-gray-700">
+          ⭐ {average} / 5  
+          <span className="text-sm text-gray-500 ml-2">
+            ({ratings.length} evaluaciones)
+          </span>
         </p>
       </div>
 

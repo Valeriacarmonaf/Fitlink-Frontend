@@ -1,96 +1,274 @@
 // src/pages/PerfilUsuario.jsx
 import React, { useState, useEffect } from "react";
-import { Camera } from "lucide-react";
-import { supabase } from "../lib/supabase.js";
+import { Camera, User, Upload } from "lucide-react";
 
-export default function PerfilUsuario() {
-  const [perfil, setPerfil] = useState({
-    nombre: "",
-    biografia: "",
-    fecha_nacimiento: "",
-    municipio: "",
-    foto_url: "",
-    email: "",
-  });
+const API_BASE_URL = import.meta.env.MODE === 'development' 
+  ? 'http://localhost:8000' 
+  : '';
+
+const initialState = {
+  id: null,
+  nombre: "",
+  carnet: "",
+  cedula: "", // ← Añadido
+  fecha_nacimiento: "",
+  biografia: "",
+  municipio: "",
+  telefono: "",
+  foto_url: "",
+  nivel_deportivo: "",
+  intereses_seleccionados: [],
+};
+
+// Función de fetch mejorada
+const apiFetch = async (url, options = {}) => {
+  const fullUrl = `${API_BASE_URL}${url}`;
+  console.log(`🔄 Fetching: ${options.method || 'GET'} ${fullUrl}`);
+  
+  try {
+    const response = await fetch(fullUrl, options);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Not Found: La ruta ${url} no existe`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || errorData.message || `Error ${response.status}`);
+      } else {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error(`Expected JSON but got ${contentType}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`💥 Error en fetch a ${url}:`, error);
+    throw error;
+  }
+};
+
+export default function PerfilUsuario({ session }) {
+  const [perfil, setPerfil] = useState(initialState);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [intereses, setIntereses] = useState([]);
+  const [error, setError] = useState("");
 
   // Cargar el perfil del usuario logueado desde public.usuarios
   useEffect(() => {
-    const cargarPerfil = async () => {
+    if (!session) {
+      console.log("⏳ Esperando sesión...");
+      return;
+    }
+
+    const cargarDatos = async () => {
       setLoading(true);
+      setError("");
+      
       try {
-        const { data: authData } = await supabase.auth.getUser();
-        const uid = authData?.user?.id || null;
-        const uemail = authData?.user?.email || null;
-        if (!uid && !uemail) throw new Error("No hay sesión.");
+        console.log("✅ Sesión disponible, cargando datos...");
+        
+        const authHeaders = {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        };
 
-        // Busca por id (preferible). Si tu RLS permite por email, también puedes filtrar por email.
-        const { data, error } = await supabase
-          .from("usuarios")
-          .select("id,email,nombre,biografia,fecha_nacimiento,municipio,foto_url")
-          .eq("id", uid)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (data) {
-          setPerfil({
-            nombre: data.nombre || "",
-            biografia: data.biografia || "",
-            fecha_nacimiento: data.fecha_nacimiento || "",
-            municipio: data.municipio || "",
-            foto_url: data.foto_url || "",
-            email: data.email || uemail || "",
-          });
-        } else {
-          // Si no hay fila aún, prellenamos con el email de auth
-          setPerfil((p) => ({ ...p, email: uemail || "" }));
+        // Cargar intereses desde /api/intereses
+        try {
+          console.log("📋 Cargando intereses desde /api/intereses...");
+          const interesesData = await apiFetch('/api/intereses');
+          setIntereses(interesesData.data || []);
+          console.log(`✅ Intereses cargados: ${interesesData.data?.length || 0}`);
+        } catch (interesesError) {
+          console.warn("⚠️ No se pudieron cargar los intereses:", interesesError.message);
+          setIntereses([]);
         }
-      } catch (e) {
-        console.error("Error al obtener perfil:", e?.message);
-        alert("No se pudo cargar tu perfil.");
+
+        // Cargar perfil del usuario
+        try {
+          console.log("👤 Cargando perfil desde /users/me...");
+          const perfilData = await apiFetch('/users/me', {
+            headers: authHeaders
+          });
+          
+          if (perfilData.data) {
+            const data = perfilData.data;
+            setPerfil({
+              id: data.id || null,
+              nombre: data.nombre || "",
+              carnet: data.carnet || "",
+              cedula: data.cedula || "", // ← Añadido
+              fecha_nacimiento: data.fecha_nacimiento || "",
+              biografia: data.biografia || "",
+              municipio: data.municipio || "",
+              telefono: data.telefono || "",
+              foto_url: data.foto_url || "",
+              nivel_deportivo: data.nivel_deportivo || "",
+              intereses_seleccionados: data.intereses_seleccionados || [],
+            });
+            console.log("✅ Perfil cargado correctamente");
+            console.log("🎯 Nivel deportivo:", data.nivel_deportivo);
+            console.log("🆔 Cédula:", data.cedula);
+          }
+        } catch (perfilError) {
+          if (perfilError.message.includes('404') || perfilError.message.includes('No se encontró')) {
+            console.warn("⚠️ No hay perfil existente, se creará uno nuevo");
+          } else {
+            throw perfilError;
+          }
+        }
+
+      } catch (error) {
+        console.error("❌ Error cargando datos:", error);
+        setError("Error al cargar los datos: " + error.message);
       } finally {
         setLoading(false);
       }
     };
-    cargarPerfil();
-  }, []);
+
+    cargarDatos();
+  }, [session]);
 
   const handleChange = (e) => {
-    setPerfil({ ...perfil, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setPerfil({ ...perfil, [name]: value });
+  };
+
+  const handleInteresChange = (e) => {
+    const interesId = parseInt(e.target.value);
+    const isChecked = e.target.checked;
+    
+    setPerfil((prev) => {
+      const nuevosIntereses = isChecked
+        ? [...prev.intereses_seleccionados, interesId]
+        : prev.intereses_seleccionados.filter((id) => id !== interesId);
+      
+      console.log("🎯 Intereses actualizados:", nuevosIntereses);
+      return { ...prev, intereses_seleccionados: nuevosIntereses };
+    });
+  };
+
+  const uploadAvatar = async (event) => {
+    try {
+      setUploading(true);
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error("Debes seleccionar una imagen para subir.");
+      }
+      
+      const file = event.target.files[0];
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      await apiFetch('/users/me/upload-foto', {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+
+      // Recargar el perfil después de subir la foto
+      const perfilData = await apiFetch('/users/me', {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      
+      if (perfilData.data) {
+        setPerfil(prev => ({ ...prev, foto_url: perfilData.data.foto_url }));
+      }
+      
+      alert("Foto actualizada. ¡No olvides guardar el perfil!");
+
+    } catch (error) {
+      alert("Error al subir la foto: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handlePrefsChange = (e) => {
+    setPrefs({ ...prefs, [e.target.name]: e.target.checked });
+  };
+
+  const validarDatos = () => {
+    const telRegex = /^[0-9]{10}$/;
+    
+    // Validar teléfono
+    if (perfil.telefono && !telRegex.test(perfil.telefono)) {
+      alert("El teléfono debe tener 10 dígitos numéricos.");
+      return false;
+    }
+    
+    // Validar nivel deportivo (ahora siempre tendrá valor por defecto)
+    // Pero mejor verificar que sea uno de los valores válidos
+    const nivelesValidos = ["principiante", "en progreso", "intermedio", "avanzado", "experto"];
+    if (perfil.nivel_deportivo && !nivelesValidos.includes(perfil.nivel_deportivo)) {
+      alert("Por favor selecciona un nivel deportivo válido.");
+      return false;
+    }
+    
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      const { data: authData } = await supabase.auth.getUser();
-      const uid = authData?.user?.id;
-      const uemail = authData?.user?.email;
 
-      // upsert a public.usuarios (usa la PK compuesta id,email de tu esquema)
-      const { error } = await supabase.from("usuarios").upsert({
-        id: uid,
-        email: uemail,
-        nombre: perfil.nombre || null,
-        biografia: perfil.biografia || null,
-        fecha_nacimiento: perfil.fecha_nacimiento || null, // YYYY-MM-DD
-        municipio: perfil.municipio || null,
-        foto_url: perfil.foto_url || null,
+    // SOLUCIÓN TEMPORAL: Siempre enviar un número válido
+    const nivelMapping = {
+      "principiante": 1,
+      "en progreso": 2, 
+      "intermedio": 3,
+      "avanzado": 4,
+      "experto": 5
+    };
+    
+    // Si no hay nivel seleccionado, usar "principiante" por defecto
+    const nivelSeleccionado = perfil.nivel_deportivo || "principiante";
+    const nivelId = nivelMapping[nivelSeleccionado] || 1;
+
+    const perfilData = {
+      nombre: perfil.nombre,
+      carnet: perfil.carnet,
+      cedula: perfil.cedula,
+      fecha_nacimiento: perfil.fecha_nacimiento || null,
+      biografia: perfil.biografia,
+      municipio: perfil.municipio,
+      telefono: perfil.telefono,
+      foto_url: perfil.foto_url,
+      nivel_deportivo: nivelId, // Número 1-5
+      intereses: perfil.intereses_seleccionados,
+    };
+
+    console.log("💾 Guardando - Nivel:", nivelSeleccionado, "ID:", nivelId);
+
+    try {
+      await apiFetch('/users/me', {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(perfilData),
       });
 
-      if (error) throw error;
       alert("✅ Perfil guardado correctamente");
-    } catch (e) {
-      console.error(e);
-      alert("❌ Error al guardar el perfil: " + (e?.message || "desconocido"));
+      
+    } catch (error) {
+      alert("❌ Error al guardar el perfil: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const escanearCedula = async () => {
-    alert("Función de escaneo aún no implementada.");
+  const escanearCarnet = async () => {
+    alert("Función de escaneo de carnet aún no implementada.");
   };
 
   return (
@@ -99,33 +277,95 @@ export default function PerfilUsuario() {
         Perfil de Usuario
       </h1>
 
-      {loading ? (
-        <p className="text-center text-gray-600">Cargando...</p>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
+
+      {loading && !perfil.id ? (
+        <p className="text-center text-gray-600">Cargando perfil...</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            name="nombre"
-            value={perfil.nombre}
-            onChange={handleChange}
-            placeholder="Nombre"
-            className="border rounded-lg p-2 w-full"
-            required
-          />
+          {/* Sección de foto */}
+          <div className="flex flex-col items-center space-y-3">
+            {perfil.foto_url ? (
+              <img
+                src={perfil.foto_url}
+                alt="Avatar"
+                className="w-32 h-32 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center">
+                <User size={64} className="text-gray-500" />
+              </div>
+            )}
+            <label className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium cursor-pointer hover:bg-gray-300">
+              {uploading ? "Subiendo..." : "Cambiar Foto"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={uploadAvatar}
+                disabled={uploading}
+              />
+            </label>
+          </div>
+
+          {/* Campos del formulario */}
+          <div className="space-y-4">
+            <input
+              name="nombre"
+              value={perfil.nombre}
+              onChange={handleChange}
+              placeholder="Nombre"
+              className="border rounded-lg p-2 w-full"
+              required
+            />
+            <input
+              name="cedula"
+              value={perfil.cedula}
+              onChange={handleChange}
+              placeholder="Cédula"
+              className="border rounded-lg p-2 w-full"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              name="carnet"
+              value={perfil.carnet}
+              onChange={handleChange}
+              placeholder="Carnet"
+              className="border rounded-lg p-2 w-full"
+            />
+            <button
+              type="button"
+              onClick={escanearCarnet}
+              className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+              title="(placeholder) Cámara"
+            >
+              <Camera size={18} /> Foto
+            </button>
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-600">Fecha de Nacimiento</label>
+            <input
+              type="date"
+              name="fecha_nacimiento"
+              value={perfil.fecha_nacimiento}
+              onChange={handleChange}
+              className="border rounded-lg p-2 w-full"
+            />
+          </div>
 
           <textarea
             name="biografia"
             value={perfil.biografia}
             onChange={handleChange}
-            placeholder="Biografía"
-            className="border rounded-lg p-2 w-full min-h-24"
-          />
-
-          <input
-            type="date"
-            name="fecha_nacimiento"
-            value={perfil.fecha_nacimiento || ""}
-            onChange={handleChange}
-            className="border rounded-lg p-2 w-full"
+            placeholder="Biografía (cuéntanos un poco sobre ti)"
+            className="border rounded-lg p-2 w-full h-24"
           />
 
           <input
@@ -136,30 +376,71 @@ export default function PerfilUsuario() {
             className="border rounded-lg p-2 w-full"
           />
 
-          <div className="flex gap-2">
-            <input
-              name="foto_url"
-              value={perfil.foto_url}
-              onChange={handleChange}
-              placeholder="URL de foto"
-              className="border rounded-lg p-2 w-full"
-            />
-            <button
-              type="button"
-              onClick={escanearCedula}
-              className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
-              title="(placeholder) Cámara"
-            >
-              <Camera size={18} /> Foto
-            </button>
+          <input
+            name="telefono"
+            value={perfil.telefono}
+            onChange={handleChange}
+            placeholder="Teléfono (10 dígitos)"
+            className="border rounded-lg p-2 w-full"
+          />
+
+          <select
+            name="nivel_deportivo"
+            value={perfil.nivel_deportivo}
+            onChange={handleChange}
+            className="border rounded-lg p-2 w-full"
+            required
+          >
+            <option value="">Selecciona tu nivel deportivo</option>
+            <option value="principiante">Principiante</option>
+            <option value="en progreso">En Progreso</option>
+            <option value="intermedio">Intermedio</option>
+            <option value="avanzado">Avanzado</option>
+            <option value="experto">Experto</option>
+          </select>
+
+          {/* Sección de intereses con checkmarks */}
+          <div>
+            <label className="font-medium text-gray-700">Intereses Deportivos</label>
+            {intereses.length === 0 ? (
+              <p className="text-sm text-gray-500 mt-2">
+                Cargando intereses...
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                {intereses.map((interes) => (
+                  <label
+                    key={interes.id}
+                    className="flex items-center gap-2 border p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      value={interes.id}
+                      checked={perfil.intereses_seleccionados.includes(interes.id)}
+                      onChange={handleInteresChange}
+                      className="rounded text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="flex items-center gap-2">
+                      <span className="text-lg">{interes.icono}</span>
+                      <span className="text-sm">{interes.nombre}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {intereses.length > 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                {perfil.intereses_seleccionados.length} intereses seleccionados
+              </p>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+            disabled={loading || uploading}
+            className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50"
           >
-            {loading ? "Guardando..." : "Guardar Perfil"}
+            {loading ? "Guardando..." : "Guardar Cambios"}
           </button>
         </form>
       )}

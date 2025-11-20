@@ -1,4 +1,3 @@
-// src/pages/LandingPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
@@ -173,7 +172,48 @@ export default function LandingPage() {
   const PAGE_SIZE = 3;
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const [page, setPage] = useState(0);
+  
   useEffect(() => setPage(0), [selectedZone, filtered.length]);
+  const imageByCategory = (cat) => {
+    let categoryName = ""; // 1. Empezar con un string vacío
+
+    if (typeof cat === 'string') {
+      // 2. Si es un string, usarlo
+      categoryName = cat;
+    } else if (typeof cat === 'object' && cat !== null && cat.nombre) {
+      // 3. Si es un objeto como { nombre: "Yoga" }, usar .nombre
+      categoryName = cat.nombre;
+    } else if (typeof cat === 'number') {
+      // 4. Si es un número, convertirlo a string (no fallará)
+      categoryName = String(cat);
+    }
+    // 5. Si es null o undefined, categoryName seguirá siendo ""
+
+    // 'k' ahora siempre será un string en minúsculas.
+    const k = (categoryName || "").toLowerCase();
+
+    if (k.includes("yoga") || k.includes("mente"))
+      return "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop";
+    if (k.includes("running") || k.includes("caminata"))
+      return "https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1200&auto=format&fit=crop";
+    if (k.includes("cicl"))
+      return "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop";
+    if (k.includes("equipo"))
+      return "https://images.unsplash.com/photo-1521417531039-94eaa7b5456f?q=80&w=1200&auto=format&fit=crop";
+    
+    // Imagen por defecto
+    return "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop";
+  };
+  // ----- FIN DE LA CORRECCIÓN -----
+
+  const PAGE_SIZE = 3;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    setPage(0);
+  }, [selectedZone, filtered.length]);
+
   const pageEvents = useMemo(() => {
     const start = page * PAGE_SIZE;
     const end = start + PAGE_SIZE;
@@ -245,7 +285,24 @@ export default function LandingPage() {
         </Link>
       </section>
 
-      {/* Próximos eventos: filtro + carrusel */}
+      {/* 🔥 BLOQUE NUEVO: Explorar usuarios */}
+      <section className="max-w-3xl mx-auto mb-12 bg-white shadow-xl rounded-2xl p-8 text-center">
+        <h2 className="text-3xl font-semibold mb-4 text-gray-800">
+          Explorar Usuarios
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Descubre deportistas de tu zona, ve sus perfiles públicos y calificaciones.
+        </p>
+
+        <Link
+          to="/users"
+          className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-md hover:bg-indigo-700 transition"
+        >
+          Ver Usuarios
+        </Link>
+      </section>
+
+      {/* EVENTOS */}
       <section className="max-w-7xl mx-auto py-8 px-4 bg-white rounded-2xl shadow-xl">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
           <h2 className="text-4xl font-bold text-gray-800 text-center sm:text-left">
@@ -283,32 +340,22 @@ export default function LandingPage() {
             {totalPages > 1 && (
               <button
                 onClick={goPrev}
-                className="hidden sm:flex absolute -left-10 top-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-full shadow-xl hover:bg-gray-700 focus:outline-none z-20 transition-all duration-200"
-                aria-label="Anterior"
+                className="hidden sm:flex absolute -left-10 top-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-full shadow-xl hover:bg-gray-700 transition"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
+                ‹
               </button>
             )}
 
             <div className="w-full overflow-hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center transition-all duration-300">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
                 {pageEvents.map((e) => (
                   <EventReal
                     key={e.id}
-                    event={{ ...e, imageUrl: getEventImage(e) }}
+                    event={{
+                      ...e,
+                      // Esta línea ya no fallará
+                      imageUrl: e.imageUrl || imageByCategory(e.categoria),
+                    }}
                     onShowDetails={handleShowDetails}
                   />
                 ))}
@@ -318,23 +365,9 @@ export default function LandingPage() {
             {totalPages > 1 && (
               <button
                 onClick={goNext}
-                className="hidden sm:flex absolute -right-10 top-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-full shadow-xl hover:bg-gray-700 focus:outline-none z-20 transition-all duration-200"
-                aria-label="Siguiente"
+                className="hidden sm:flex absolute -right-10 top-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-full shadow-xl hover:bg-gray-700 transition"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
+                ›
               </button>
             )}
 
