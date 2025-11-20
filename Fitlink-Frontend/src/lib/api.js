@@ -2,22 +2,26 @@
 const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 async function http(url, options = {}) {
+  const token = localStorage.getItem("sb-access-token");
+
   const res = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+      Authorization: token ? `Bearer ${token}` : "",
+      ...(options.headers || {})
+    }
   });
+
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
     throw new Error(txt || `HTTP ${res.status}`);
   }
+
   return res.json();
 }
 
 export const api = {
-  /** ------------------ EVENTOS --------------------- */
   upcomingEvents(limit = 50) {
     return http(`${API}/api/events/upcoming?limit=${limit}`);
   },
@@ -30,9 +34,11 @@ export const api = {
         )
       )
     );
+
     const url = qs.toString()
       ? `${API}/api/events?${qs}`
       : `${API}/api/events`;
+
     return http(url);
   },
 
@@ -40,34 +46,29 @@ export const api = {
     return http(`${API}/api/stats`).catch(() => ({
       usuarios: 0,
       categorias: 0,
-      eventosProximos: 0,
+      eventosProximos: 0
     }));
   },
 
-  /** ------------------ NOTIFICACIONES --------------------- */
-
-  /** Obtener notificaciones del usuario */
-  getNotifications(email) {
-    return http(`${API}/api/notificaciones/${email}`);
+  // ---------------- NOTIFICACIONES ----------------
+  getNotifications() {
+    return http(`${API}/notificaciones`);
   },
 
-  /** Marcar una notificación como leída */
   markAsRead(id) {
-    return http(`${API}/api/notificaciones/leer/${id}`, {
-      method: "POST",
+    return http(`${API}/notificaciones/${id}/leer`, {
+      method: "PUT"
     });
   },
 
-  /** Obtener preferencias del usuario */
-  getNotificationPreferences(email) {
-    return http(`${API}/api/notificaciones/preferencias/${email}`);
+  getNotificationPreferences() {
+    return http(`${API}/notificaciones/preferencias`);
   },
 
-  /** Guardar preferencias del usuario */
-  saveNotificationPreferences(email, prefs) {
-    return http(`${API}/api/notificaciones/preferencias/${email}`, {
-      method: "POST",
-      body: JSON.stringify(prefs),
+  saveNotificationPreferences(prefs) {
+    return http(`${API}/notificaciones/preferencias`, {
+      method: "PUT",
+      body: JSON.stringify(prefs)
     });
-  },
+  }
 };
