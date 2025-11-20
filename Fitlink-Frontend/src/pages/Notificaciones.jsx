@@ -1,31 +1,44 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { supabase } from "../lib/supabase";
 
-export default function Notificaciones() {
+export default function Notificaciones({ session }) {
   const [notifs, setNotifs] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const email = supabase.auth.getUser()?.data?.user?.email;
+  // Obtener el usuario actual desde la session prop
+  const currentUser = session?.user;
 
   useEffect(() => {
-    if (!email) return;
+    if (!currentUser?.id) return;
 
-    api.getNotifications(email)
-      .then((data) => setNotifs(data))
-      .finally(() => setLoading(false));
-  }, [email]);
+    async function loadNotifications() {
+      try {
+        const data = await api.getNotifications(); // ← Sin parámetros
+        setNotifs(data);
+      } catch (error) {
+        console.error("Error cargando notificaciones:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadNotifications();
+  }, [currentUser]);
 
   const marcarLeida = async (id) => {
-    await api.markAsRead(id);
-    setNotifs((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, leida: true } : n
-      )
-    );
+    try {
+      await api.markAsRead(id);
+      setNotifs((prev) =>
+        prev.map((n) =>
+          n.id === id ? { ...n, leida: true } : n
+        )
+      );
+    } catch (error) {
+      console.error("Error marcando como leída:", error);
+      alert("Error al marcar como leída");
+    }
   };
 
-  if (!email) return <p className="text-center p-10">Inicia sesión.</p>;
   if (loading) return <p className="text-center p-10">Cargando...</p>;
 
   return (
