@@ -1,4 +1,3 @@
-// src/pages/LandingPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import EventReal from "../components/EventReal";
@@ -49,7 +48,23 @@ export default function LandingPage() {
   }, [selectedZone, events]);
 
   const imageByCategory = (cat) => {
-    const k = (cat || "").toLowerCase();
+    let categoryName = ""; // 1. Empezar con un string vacío
+
+    if (typeof cat === 'string') {
+      // 2. Si es un string, usarlo
+      categoryName = cat;
+    } else if (typeof cat === 'object' && cat !== null && cat.nombre) {
+      // 3. Si es un objeto como { nombre: "Yoga" }, usar .nombre
+      categoryName = cat.nombre;
+    } else if (typeof cat === 'number') {
+      // 4. Si es un número, convertirlo a string (no fallará)
+      categoryName = String(cat);
+    }
+    // 5. Si es null o undefined, categoryName seguirá siendo ""
+
+    // 'k' ahora siempre será un string en minúsculas.
+    const k = (categoryName || "").toLowerCase();
+
     if (k.includes("yoga") || k.includes("mente"))
       return "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop";
     if (k.includes("running") || k.includes("caminata"))
@@ -58,8 +73,11 @@ export default function LandingPage() {
       return "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop";
     if (k.includes("equipo"))
       return "https://images.unsplash.com/photo-1521417531039-94eaa7b5456f?q=80&w=1200&auto=format&fit=crop";
+    
+    // Imagen por defecto
     return "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop";
   };
+  // ----- FIN DE LA CORRECCIÓN -----
 
   const PAGE_SIZE = 3;
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -163,6 +181,7 @@ export default function LandingPage() {
                     key={e.id}
                     event={{
                       ...e,
+                      // Esta línea ya no fallará
                       imageUrl: e.imageUrl || imageByCategory(e.categoria),
                     }}
                     onShowDetails={handleShowDetails}
