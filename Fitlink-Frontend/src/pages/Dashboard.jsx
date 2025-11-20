@@ -8,6 +8,39 @@ import { api } from "../lib/api"; // ajusta si tu módulo exporta distinto
 const SecondaryButtonClasses =
   "inline-block px-6 py-3 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition duration-150";
 
+/* ===== Helpers de normalización seguros ===== */
+const toStr = (v) => (v ?? "").toString();
+const norm = (s) => toStr(s).trim().toLowerCase();
+
+/** Acepta categoría string u objeto { nombre, icono }, devuelve string seguro */
+function catToString(cat) {
+  if (!cat) return "";
+  if (typeof cat === "string") return cat;
+  if (typeof cat === "object") {
+    // casos comunes desde Supabase: { nombre, icono }
+    return toStr(cat.nombre ?? "");
+  }
+  return toStr(cat);
+}
+
+/** Devuelve un URL de imagen según categoría (string u objeto) */
+function imageByCategory(cat) {
+  const k = norm(catToString(cat));
+  if (k.includes("yoga") || k.includes("mente")) {
+    return "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop";
+  }
+  if (k.includes("running") || k.includes("caminata")) {
+    return "https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1200&auto=format&fit=crop";
+  }
+  if (k.includes("cicl")) {
+    return "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop";
+  }
+  if (k.includes("equipo")) {
+    return "https://images.unsplash.com/photo-1521417531039-94eaa7b5456f?q=80&w=1200&auto=format&fit=crop";
+  }
+  return "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop";
+}
+
 export default function Dashboard() {
   // ----- estado -----
   const [loading, setLoading] = useState(true);
@@ -22,14 +55,14 @@ export default function Dashboard() {
 
   // ----- filtros desde URL -----
   const [searchParams] = useSearchParams();
-  const q = (searchParams.get("q") || "").trim().toLowerCase();
+  const q = norm(searchParams.get("q") || "");
   const cats = (searchParams.get("categorias") || "")
     .split(",")
-    .map((s) => s.trim().toLowerCase())
+    .map((s) => norm(s))
     .filter(Boolean);
   const places = (searchParams.get("lugares") || "")
     .split(",")
-    .map((s) => s.trim().toLowerCase())
+    .map((s) => norm(s))
     .filter(Boolean);
 
   // ¿Estamos en modo búsqueda?
@@ -60,20 +93,18 @@ export default function Dashboard() {
   }, []);
 
   // ----- filtros locales -----
-  const norm = (s) => (s || "").toString().trim().toLowerCase();
-
   const eventosFiltrados = useMemo(() => {
-    let arr = eventos;
+    let arr = eventos || [];
 
     if (q) {
       arr = arr.filter((e) =>
-        [e.nombre_evento, e.descripcion, e.categoria, e.municipio]
+        [e.nombre_evento, e.descripcion, catToString(e.categoria), e.municipio]
           .map(norm)
           .some((v) => v.includes(q))
       );
     }
     if (cats.length) {
-      arr = arr.filter((e) => cats.includes(norm(e.categoria)));
+      arr = arr.filter((e) => cats.includes(norm(catToString(e.categoria))));
     }
     if (places.length) {
       arr = arr.filter((e) => places.includes(norm(e.municipio)));
@@ -85,7 +116,7 @@ export default function Dashboard() {
   const topCategorias = useMemo(() => {
     const m = new Map();
     (eventos || []).forEach((e) => {
-      const key = e.categoria || "Sin categoría";
+      const key = catToString(e.categoria) || "Sin categoría";
       m.set(key, (m.get(key) || 0) + 1);
     });
     return [...m.entries()]
@@ -105,16 +136,6 @@ export default function Dashboard() {
       .sort((a, b) => b.total - a.total)
       .slice(0, 6);
   }, [eventos]);
-
-  // Imagen placeholder por categoría (ajústalo o bórralo si ya guardas imageUrl)
-  const imageByCategory = (cat) => {
-    const k = (cat || "").toLowerCase();
-    if (k.includes("yoga") || k.includes("mente")) return "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop";
-    if (k.includes("running") || k.includes("caminata")) return "https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1200&auto=format&fit=crop";
-    if (k.includes("cicl")) return "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop";
-    if (k.includes("equipo")) return "https://images.unsplash.com/photo-1521417531039-94eaa7b5456f?q=80&w=1200&auto=format&fit=crop";
-    return "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop";
-  };
 
   return (
     <main className="flex-grow p-6 sm:p-10 bg-white">
@@ -171,8 +192,8 @@ export default function Dashboard() {
                   key={e.id}
                   event={{
                     ...e,
-                    // asegúrate de que EventReal tenga una imagen
                     imageUrl: e.imageUrl || imageByCategory(e.categoria),
+                    categoria: catToString(e.categoria), // asegura string para la card
                   }}
                   onShowDetails={handleShowDetails}
                 />
@@ -202,17 +223,22 @@ export default function Dashboard() {
                     <tr key={e.id} className="border-t">
                       <Td>{e.inicio ? new Date(e.inicio).toLocaleString() : "-"}</Td>
                       <Td className="font-medium">{e.nombre_evento}</Td>
-                      <Td>{e.categoria}</Td>
+                      {/* 👇 evita "Objects are not valid as a React child" */}
+                      <Td>{catToString(e.categoria) || "-"}</Td>
                       <Td>{e.municipio || "-"}</Td>
-                      <Td className="text-right">{e.precio != null ? Number(e.precio).toFixed(2) : "-"}</Td>
+                      <Td className="text-right">
+                        {e.precio != null && !Number.isNaN(Number(e.precio))
+                          ? Number(e.precio).toFixed(2)
+                          : "-"}
+                      </Td>
                       <Td>
                         <span
                           className={`px-2 py-1 rounded text-xs ${
-                            (e.estado || "").toLowerCase() === "activo"
+                            norm(e.estado) === "activo"
                               ? "bg-green-100 text-green-700"
-                              : (e.estado || "").toLowerCase() === "finalizado"
+                              : norm(e.estado) === "finalizado"
                               ? "bg-gray-100 text-gray-700"
-                              : (e.estado || "").toLowerCase() === "cancelado"
+                              : norm(e.estado) === "cancelado"
                               ? "bg-red-100 text-red-700"
                               : "bg-yellow-100 text-yellow-700"
                           }`}

@@ -1,3 +1,4 @@
+// src/pages/PerfilUsuario.jsx
 import React, { useState, useEffect } from "react";
 import { Camera, User, Upload } from "lucide-react";
 
@@ -60,6 +61,7 @@ export default function PerfilUsuario({ session }) {
   const [intereses, setIntereses] = useState([]);
   const [error, setError] = useState("");
 
+  // Cargar el perfil del usuario logueado desde public.usuarios
   useEffect(() => {
     if (!session) {
       console.log("⏳ Esperando sesión...");
@@ -216,7 +218,6 @@ export default function PerfilUsuario({ session }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validarDatos()) return;
     setLoading(true);
 
     // SOLUCIÓN TEMPORAL: Siempre enviar un número válido
@@ -342,8 +343,9 @@ export default function PerfilUsuario({ session }) {
               type="button"
               onClick={escanearCarnet}
               className="bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700"
+              title="(placeholder) Cámara"
             >
-              <Camera size={18} /> Escanear
+              <Camera size={18} /> Foto
             </button>
           </div>
 

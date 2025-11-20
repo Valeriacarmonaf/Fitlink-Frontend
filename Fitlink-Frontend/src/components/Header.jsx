@@ -2,16 +2,35 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { SlidersHorizontal, LogOut } from "lucide-react"; // Importar icono de LogOut
 import FiltersModal from "./FiltersModal";
+import { supabase } from "../lib/supabase";
 
 const stripEmojiPrefix = (s) =>
   s ? s.replace(/^[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]+/, "").trim() : "";
 
 // 1. Aceptar 'session' y 'onLogout' como props
 export default function Header({ session, onLogout }) {
+  // estado local para mostrar/ocultar "Mis chats"
+  const [isLogged, setIsLogged] = useState(false);
   const [openFilters, setOpenFilters] = useState(false);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (mounted) setIsLogged(!!data?.session);
+    })();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLogged(!!session);
+    });
+    return () => {
+      mounted = false;
+      listener?.subscription?.unsubscribe?.();
+    };
+  }, []);
 
   // (El resto de tus funciones de búsqueda y filtros no necesitan cambios)
   useEffect(() => {
@@ -63,6 +82,13 @@ export default function Header({ session, onLogout }) {
             <SlidersHorizontal size={18} />
           </button>
         </form>
+
+        {/* Link a Mis chats (solo si hay sesión) */}
+        {session ? (
+        <Link to="/chats" className="ml-3 px-3 py-2 rounded-lg hover:bg-white/20 transition-colors">
+          Mis chats
+        </Link>
+      ) : null}
 
         {/* 2. LÓGICA CONDICIONAL PARA LOS BOTONES DE AUTENTICACIÓN */}
         <div className="flex items-center">
