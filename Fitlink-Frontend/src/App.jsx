@@ -112,7 +112,7 @@ function App() {
 
           <Route 
             path="/notificaciones"
-            element={session ? <Notificaciones /> : <Navigate to="/login" replace />}
+            element={session ? <Notificaciones session={session} /> : <Navigate to="/login" replace />}
           />
 
           {/* ❌ Página No Encontrada */}
