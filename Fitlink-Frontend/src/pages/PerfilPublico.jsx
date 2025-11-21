@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "../lib/supabase";
 import RatingStars from "../components/RatingStars";
 import { getUserRatings, addOrUpdateRating, getMyRating } from "../lib/ratings";
 import { supabase } from "../lib/supabase";

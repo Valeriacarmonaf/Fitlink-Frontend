@@ -1,9 +1,10 @@
 // src/pages/Dashboard.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import EventReal from "../components/EventReal";
 import EventDetailsModal from "../components/EventDetailsModal";
-import { api } from "../lib/api"; // ajusta si tu módulo exporta distinto
+import { api } from "../lib/api";
+import { supabase } from "../lib/supabase";
 
 const SecondaryButtonClasses =
   "inline-block px-6 py-3 bg-gray-300 text-gray-800 font-semibold rounded-lg shadow-md hover:bg-gray-400 transition duration-150";
@@ -70,27 +71,39 @@ export default function Dashboard() {
 
   // ----- carga inicial -----
   useEffect(() => {
-    const load = async () => {
-      try {
-        setError("");
-        setLoading(true);
+        const load = async () => {
+            try {
+                setError("");
+                setLoading(true);
 
-        // Trae KPIs y próximos eventos
-        const [stats, upcoming] = await Promise.all([
-          api?.stats ? api.stats() : Promise.resolve({ usuarios: 0, categorias: 0, eventosProximos: 0 }),
-          api?.upcomingEvents ? api.upcomingEvents(100) : Promise.resolve([]),
-        ]);
+                // 1. OBTENER LA SESIÓN Y EL TOKEN
+                const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token;
+                
+                // Si la ruta no requiere un usuario logueado, puedes comentar el if
+                // Si la requiere, deberías manejar el error aquí:
+                if (!token) {
+                     throw new Error("Se requiere iniciar sesión para cargar el dashboard.");
+                }
+                
+                // 2. PASAR EL TOKEN A LAS FUNCIONES API
+                const [stats, upcoming] = await Promise.all([
+                    // Debes modificar api.stats() y api.upcomingEvents() para aceptar el token.
+                    api?.stats ? api.stats(token) : Promise.resolve({ usuarios: 0, categorias: 0, eventosProximos: 0 }),
+                    api?.upcomingEvents ? api.upcomingEvents(100, token) : Promise.resolve([]),
+                ]);
 
-        setKpis(stats || { usuarios: 0, categorias: 0, eventosProximos: 0 });
-        setEventos(upcoming || []);
-      } catch (e) {
-        setError(e?.message || "Error cargando dashboard");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+                setKpis(stats || { usuarios: 0, categorias: 0, eventosProximos: 0 });
+                setEventos(upcoming || []);
+            } catch (e) {
+                console.error("Dashboard Load Error:", e);
+                setError(e?.message || "Error cargando dashboard");
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, []);
 
   // ----- filtros locales -----
   const eventosFiltrados = useMemo(() => {

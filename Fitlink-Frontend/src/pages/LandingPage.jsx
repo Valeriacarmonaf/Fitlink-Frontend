@@ -206,10 +206,6 @@ export default function LandingPage() {
   };
   // ----- FIN DE LA CORRECCIÓN -----
 
-  const PAGE_SIZE = 3;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const [page, setPage] = useState(0);
-
   useEffect(() => {
     setPage(0);
   }, [selectedZone, filtered.length]);
