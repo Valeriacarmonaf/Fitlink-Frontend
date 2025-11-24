@@ -16,7 +16,7 @@ biografia: "",
 municipio: "",
 telefono: "",
 foto_url: "",
-nivel_deportivo: "", // Se mantiene para el <select> de la UI
+nivel_deportivo: "",
 intereses_seleccionados: [],
 };
 
@@ -184,8 +184,6 @@ export default function PerfilUsuario({ session }) {
          
          const file = event.target.files[0];
          const formData = new FormData();
-         // El campo esperado por el backend para la imagen puede variar.
-         // Usaremos 'avatar' como en tu código original, si no funciona, se debe revisar el backend.
          formData.append("avatar", file); 
 
          await apiFetch('/users/me/upload-foto', {
@@ -197,7 +195,6 @@ export default function PerfilUsuario({ session }) {
             body: formData,
          });
 
-         // Recargar el perfil después de subir la foto
          const perfilData = await apiFetch('/users/me', {
             headers: { Authorization: `Bearer ${session.access_token}` }
          });
@@ -215,17 +212,12 @@ export default function PerfilUsuario({ session }) {
       }
    };
 
-   // Función de preferencias eliminada ya que no se usa, pero se puede mantener si es necesaria.
-   // const handlePrefsChange = (e) => {
-   //    setPrefs({ ...prefs, [e.target.name]: e.target.checked });
-   // };
-
    const validarDatos = () => {
-      const telRegex = /^[0-9]{10}$/;
+      const telRegex = /^[0-9]{11}$/;
       
       // Validar teléfono
       if (perfil.telefono && !telRegex.test(perfil.telefono)) {
-         alert("El teléfono debe tener 10 dígitos numéricos.");
+         alert("El teléfono debe tener 11 dígitos numéricos.");
          return false;
       }
       
@@ -248,23 +240,21 @@ export default function PerfilUsuario({ session }) {
          return;
       }
 
-      // 1. Mapeo de nivel de string a ID numérico para el backend (nivel_habilidad)
       const nivelSeleccionado = perfil.nivel_deportivo || "principiante";
       const nivelId = NivelMapping[nivelSeleccionado] || 1;
       
-      // 2. Helper para convertir strings vacíos a null para campos BigInt (carnet, cedula)
       const emptyToNull = (value) => (value === "" ? null : value);
 
       const perfilData = {
          nombre: perfil.nombre,
-         carnet: emptyToNull(perfil.carnet), // CORREGIDO: Enviar null si está vacío
-         cedula: emptyToNull(perfil.cedula), // CORREGIDO: Enviar null si está vacío
+         carnet: emptyToNull(perfil.carnet),
+         cedula: emptyToNull(perfil.cedula),
          fecha_nacimiento: perfil.fecha_nacimiento || null,
          biografia: perfil.biografia,
          municipio: perfil.municipio,
          telefono: perfil.telefono,
          foto_url: perfil.foto_url,
-         nivel_habilidad: nivelId, // CORREGIDO: Usar el nombre de campo de la tabla y el ID numérico
+         nivel_habilidad: nivelId,
          intereses: perfil.intereses_seleccionados,
       };
 
@@ -403,7 +393,7 @@ export default function PerfilUsuario({ session }) {
                   name="telefono"
                   value={perfil.telefono}
                   onChange={handleChange}
-                  placeholder="Teléfono (10 dígitos)"
+                  placeholder="Teléfono (11 dígitos)"
                   className="border rounded-lg p-2 w-full"
                />
 
