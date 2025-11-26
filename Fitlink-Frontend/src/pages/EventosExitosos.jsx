@@ -1,7 +1,8 @@
 // src/pages/EventosExitosos.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { api } from "../lib/api";
+
 
 /** FALLBACK: lista fija de municipios si aún no hay eventos */
 const MUNICIPIOS_FIJO = [
@@ -48,8 +49,8 @@ function GalleryModal({ open, onClose, images = [], titulo }) {
 }
 
 export default function EventosExitosos() {
-  const [session, setSession] = useState(null);
   const [token, setToken] = useState("");
+  const fileInputRef = useRef(null);
 
   // datos de la sección
   const [list, setList] = useState([]);
@@ -73,12 +74,10 @@ export default function EventosExitosos() {
   useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getSession();
-      setSession(data.session);
       setToken(data.session?.access_token || "");
     };
     init();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
       setToken(s?.access_token || "");
     });
     return () => listener.subscription.unsubscribe();
@@ -126,7 +125,7 @@ export default function EventosExitosos() {
       const fecha = formatDateToMMDDYYYY(fechaIso);
       if (!fecha) throw new Error("Selecciona una fecha válida.");
       if (!municipio) throw new Error("Selecciona un municipio.");
-      const created = await api.successEventsCreate(
+      await api.successEventsCreate( 
         { titulo, descripcion, fecha, municipio, files },
         token
       );
@@ -181,12 +180,36 @@ export default function EventosExitosos() {
             <textarea className={Textarea} value={descripcion} onChange={(e)=>setDescripcion(e.target.value)} required />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-semibold mb-1">Fotos (puedes seleccionar varias)</label>
-            <input type="file" accept="image/*" multiple onChange={onSelectFiles} />
-            {files.length > 0 && (
-              <div className="mt-2 text-sm text-gray-600">{files.length} archivo(s) seleccionado(s)</div>
-            )}
-          </div>
+  <label className="block text-sm font-semibold mb-1">
+    Fotos (puedes seleccionar varias)
+  </label>
+
+  {/* input REAL, pero oculto */}
+  <input
+    ref={fileInputRef}
+    type="file"
+    accept="image/*"
+    multiple
+    onChange={onSelectFiles}
+    className="hidden"
+  />
+
+  {/* botón lindo que abre el selector de archivos */}
+  <button
+    type="button"
+    onClick={() => fileInputRef.current?.click()}
+    className={SecondaryButton}
+  >
+    Elegir fotos desde tu dispositivo
+  </button>
+
+  {files.length > 0 && (
+    <div className="mt-2 text-sm text-gray-600">
+      {files.length} archivo(s) seleccionado(s)
+    </div>
+  )}
+</div>
+
           <div className="md:col-span-2 flex justify-end gap-3 mt-2">
             <button type="submit" className={PrimaryButton}>Publicar</button>
           </div>
