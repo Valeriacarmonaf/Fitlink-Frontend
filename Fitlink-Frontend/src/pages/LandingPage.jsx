@@ -6,6 +6,9 @@ import EventReal from "../components/EventReal";
 import EventDetailsModal from "../components/EventDetailsModal";
 import CreateEventModal from "../components/CreateEventModal";
 
+// Importa el botón de notificaciones
+import NotificationButton from "../components/NotificationButton"; 
+
 const PrimaryButtonClasses =
   "inline-block px-10 py-4 text-lg bg-indigo-600 text-white font-bold rounded-xl shadow-xl hover:bg-indigo-700 transition duration-300 transform hover:scale-[1.02]";
 
@@ -162,6 +165,38 @@ export default function LandingPage() {
   const PAGE_SIZE = 3;
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const [page, setPage] = useState(0);
+  
+  useEffect(() => setPage(0), [selectedZone, filtered.length]);
+  const imageByCategory = (cat) => {
+    let categoryName = ""; // 1. Empezar con un string vacío
+
+    if (typeof cat === 'string') {
+      // 2. Si es un string, usarlo
+      categoryName = cat;
+    } else if (typeof cat === 'object' && cat !== null && cat.nombre) {
+      // 3. Si es un objeto como { nombre: "Yoga" }, usar .nombre
+      categoryName = cat.nombre;
+    } else if (typeof cat === 'number') {
+      // 4. Si es un número, convertirlo a string (no fallará)
+      categoryName = String(cat);
+    }
+    // 5. Si es null o undefined, categoryName seguirá siendo "" 
+
+    const k = (categoryName || "").toLowerCase();
+
+    if (k.includes("yoga") || k.includes("mente"))
+      return "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop";
+    if (k.includes("running") || k.includes("caminata"))
+      return "https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1200&auto=format&fit=crop";
+    if (k.includes("cicl"))
+      return "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop";
+    if (k.includes("equipo"))
+      return "https://images.unsplash.com/photo-1521417531039-94eaa7b5456f?q=80&w=1200&auto=format&fit=crop";
+    
+    // Imagen por defecto
+    return "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop";
+  };
+  // ----- FIN DE LA CORRECCIÓN -----
 
   useEffect(() => {
     setPage(0);
@@ -210,7 +245,6 @@ export default function LandingPage() {
 
       if (!res.ok) throw new Error("No se pudo hacer match");
       const { chat_id } = await res.json();
-      
       if (chat_id) {
         navigate(`/chats/${chat_id}`);
       } else {
@@ -237,7 +271,12 @@ export default function LandingPage() {
         </Link>
       </section>
 
-      {/* Explorar usuarios */}
+      {/* Sección de Notificaciones */}
+      <section className="max-w-4xl mx-auto mb-12 text-center">
+        <NotificationButton session={session} />  {/* Aquí agregamos el botón de notificaciones */}
+      </section>
+
+      {/* 🔥 BLOQUE NUEVO: Explorar usuarios */}
       <section className="max-w-3xl mx-auto mb-12 bg-white shadow-xl rounded-2xl p-8 text-center">
         <h2 className="text-3xl font-semibold mb-4 text-gray-800">
           Explorar Usuarios
@@ -394,7 +433,6 @@ export default function LandingPage() {
         onClose={() => setOpenCreate(false)}
         onCreated={handleCreated}
       />
-
     </main>
   );
 }
