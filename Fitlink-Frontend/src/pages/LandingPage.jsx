@@ -5,6 +5,9 @@ import EventReal from "../components/EventReal";
 import EventDetailsModal from "../components/EventDetailsModal";
 import CreateEventModal from "../components/CreateEventModal";
 
+// Importa el botón de notificaciones
+import NotificationButton from "../components/NotificationButton"; 
+
 const PrimaryButtonClasses =
   "inline-block px-10 py-4 text-lg bg-indigo-600 text-white font-bold rounded-xl shadow-xl hover:bg-indigo-700 transition duration-300 transform hover:scale-[1.02]";
 
@@ -187,9 +190,8 @@ export default function LandingPage() {
       // 4. Si es un número, convertirlo a string (no fallará)
       categoryName = String(cat);
     }
-    // 5. Si es null o undefined, categoryName seguirá siendo ""
+    // 5. Si es null o undefined, categoryName seguirá siendo "" 
 
-    // 'k' ahora siempre será un string en minúsculas.
     const k = (categoryName || "").toLowerCase();
 
     if (k.includes("yoga") || k.includes("mente"))
@@ -243,7 +245,6 @@ export default function LandingPage() {
         return;
       }
 
-      // usa tu endpoint join del backend: POST /api/events/{id}/join
       const res = await fetch(`/api/events/${ev.id}/join`, {
         method: "POST",
         headers: {
@@ -252,12 +253,10 @@ export default function LandingPage() {
       });
 
       if (!res.ok) throw new Error("No se pudo hacer match");
-      const { chat_id } = await res.json(); // tu backend devuelve {"ok":true,"event_id":...,"chat_id":...}
+      const { chat_id } = await res.json();
       if (chat_id) {
-        // aquí podrías mostrar tu modal "match" y luego:
         navigate(`/chats/${chat_id}`);
       } else {
-        // fallback si la respuesta no trae chat_id
         navigate(`/chats`);
       }
     } catch (e) {
@@ -279,6 +278,11 @@ export default function LandingPage() {
         <Link to="/dashboard" className={PrimaryButtonClasses}>
           Ir al Panel de Control
         </Link>
+      </section>
+
+      {/* Sección de Notificaciones */}
+      <section className="max-w-4xl mx-auto mb-12 text-center">
+        <NotificationButton session={session} />  {/* Aquí agregamos el botón de notificaciones */}
       </section>
 
       {/* 🔥 BLOQUE NUEVO: Explorar usuarios */}
@@ -439,7 +443,6 @@ export default function LandingPage() {
          onClose={() => setOpenCreate(false)}
          onCreated={handleCreated}
       />
-
     </main>
   );
 }
