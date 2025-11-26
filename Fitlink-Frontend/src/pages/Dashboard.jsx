@@ -1,4 +1,3 @@
-// src/pages/Dashboard.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import EventReal from "../components/EventReal";
@@ -13,18 +12,28 @@ const SecondaryButtonClasses =
 const toStr = (v) => (v ?? "").toString();
 const norm = (s) => toStr(s).trim().toLowerCase();
 
-/** Acepta categoría string u objeto { nombre, icono }, devuelve string seguro */
+/** Acepta categoría string u objeto, devuelve string seguro */
 function catToString(cat) {
   if (!cat) return "";
   if (typeof cat === "string") return cat;
   if (typeof cat === "object") {
-    // casos comunes desde Supabase: { nombre, icono }
-    return toStr(cat.nombre ?? "");
+    return toStr(cat.nombre || cat.Nombre || ""); 
   }
-  return toStr(cat);
+  return ""; 
 }
 
-/** Devuelve un URL de imagen según categoría (string u objeto) */
+/** * Helper CRÍTICO para obtener el nombre del evento.
+ * Busca en varias propiedades por si Supabase devuelve mayúsculas/minúsculas distintas.
+ */
+function getEventName(e) {
+  if (!e) return "";
+  return e.nombre_evento || e.Nombre_evento || e.nombre || e.Name || "";
+}
+
+/** Helper para obtener propiedad (soporta minúscula o Capitalizada) */
+const getProp = (obj, keyLower, keyCap) => obj[keyLower] || obj[keyCap];
+
+/** Devuelve un URL de imagen según categoría */
 function imageByCategory(cat) {
   const k = norm(catToString(cat));
   if (k.includes("yoga") || k.includes("mente")) {
@@ -36,7 +45,7 @@ function imageByCategory(cat) {
   if (k.includes("cicl")) {
     return "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop";
   }
-  if (k.includes("equipo")) {
+  if (k.includes("equipo") || k.includes("fut") || k.includes("balon")) {
     return "https://images.unsplash.com/photo-1521417531039-94eaa7b5456f?q=80&w=1200&auto=format&fit=crop";
   }
   return "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop";
@@ -56,7 +65,9 @@ export default function Dashboard() {
 
   // ----- filtros desde URL -----
   const [searchParams] = useSearchParams();
+  // Obtenemos 'q' (lo que escribes en el buscador)
   const q = norm(searchParams.get("q") || "");
+  
   const cats = (searchParams.get("categorias") || "")
     .split(",")
     .map((s) => norm(s))
@@ -71,65 +82,97 @@ export default function Dashboard() {
 
   // ----- carga inicial -----
   useEffect(() => {
-        const load = async () => {
-            try {
-                setError("");
-                setLoading(true);
+    const load = async () => {
+      try {
+        setError("");
+        setLoading(true);
 
-                // 1. OBTENER LA SESIÓN Y EL TOKEN
-                const { data: { session } } = await supabase.auth.getSession();
-                const token = session?.access_token;
-                
-                // Si la ruta no requiere un usuario logueado, puedes comentar el if
-                // Si la requiere, deberías manejar el error aquí:
-                if (!token) {
-                     throw new Error("Se requiere iniciar sesión para cargar el dashboard.");
-                }
-                
-                // 2. PASAR EL TOKEN A LAS FUNCIONES API
-                const [stats, upcoming] = await Promise.all([
-                    // Debes modificar api.stats() y api.upcomingEvents() para aceptar el token.
-                    api?.stats ? api.stats(token) : Promise.resolve({ usuarios: 0, categorias: 0, eventosProximos: 0 }),
-                    api?.upcomingEvents ? api.upcomingEvents(100, token) : Promise.resolve([]),
-                ]);
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        
+        const [stats, upcoming] = await Promise.all([
+          api?.stats ? api.stats(token) : Promise.resolve({ usuarios: 0, categorias: 0, eventosProximos: 0 }),
+          api?.upcomingEvents ? api.upcomingEvents(100, token) : Promise.resolve([]),
+        ]);
 
-                setKpis(stats || { usuarios: 0, categorias: 0, eventosProximos: 0 });
-                setEventos(upcoming || []);
-            } catch (e) {
-                console.error("Dashboard Load Error:", e);
-                setError(e?.message || "Error cargando dashboard");
-            } finally {
-                setLoading(false);
-            }
-        };
-        load();
-    }, []);
+        setKpis(stats || { usuarios: 0, categorias: 0, eventosProximos: 0 });
+        setEventos(upcoming || []);
+      } catch (e) {
+        console.error("Dashboard Load Error:", e);
+        setError(e?.message || "Error cargando dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
-  // ----- filtros locales -----
+  // ----- filtros locales MEJORADOS -----
   const eventosFiltrados = useMemo(() => {
     let arr = eventos || [];
 
+    // Pre-procesamos para facilitar la búsqueda
+    let normalizedEvents = arr.map(e => {
+        const rawCat = getProp(e, 'categoria', 'Categoria'); 
+        const rawMuni = getProp(e, 'municipio', 'Municipio');
+        
+        // AQUÍ ESTÁ LA CLAVE: Usamos el helper getEventName
+        const rawName = getEventName(e); 
+        const rawDesc = getProp(e, 'descripcion', 'Descripcion');
+
+        return {
+            original: e,
+            catStr: norm(catToString(rawCat)),
+            muniStr: norm(rawMuni),
+            // Creamos un string de búsqueda que prioriza el nombre
+            nameStr: norm(rawName), 
+            // String compuesto para búsquedas generales
+            fullSearchStr: norm(`${rawName} ${rawDesc} ${rawMuni}`)
+        };
+    });
+
+    // 1. Filtro por Texto (Nombre)
     if (q) {
-      arr = arr.filter((e) =>
-        [e.nombre_evento, e.descripcion, catToString(e.categoria), e.municipio]
-          .map(norm)
-          .some((v) => v.includes(q))
+      console.log(`🔍 Buscando "${q}" en ${normalizedEvents.length} eventos...`);
+      
+      normalizedEvents = normalizedEvents.filter(item => {
+         // Buscamos PRINCIPALMENTE en el nombre del evento
+         const matchName = item.nameStr.includes(q);
+         
+         // Opcional: Si quieres que también busque en descripción o categoría, usa fullSearchStr
+         // Por ahora, como pediste "buscar por nombre", damos prioridad a eso, 
+         // pero es buena UX buscar en todo.
+         const matchAll = item.fullSearchStr.includes(q) || item.catStr.includes(q);
+         
+         return matchAll; 
+      });
+      
+      console.log(`✅ Encontrados: ${normalizedEvents.length}`);
+    }
+
+    // 2. Filtro por Categoría
+    if (cats.length) {
+      normalizedEvents = normalizedEvents.filter(item => 
+        cats.includes(item.catStr)
       );
     }
-    if (cats.length) {
-      arr = arr.filter((e) => cats.includes(norm(catToString(e.categoria))));
-    }
+
+    // 3. Filtro por Lugar
     if (places.length) {
-      arr = arr.filter((e) => places.includes(norm(e.municipio)));
+      normalizedEvents = normalizedEvents.filter(item => 
+        places.includes(item.muniStr)
+      );
     }
-    return arr;
+
+    return normalizedEvents.map(item => item.original);
   }, [eventos, q, cats, places]);
 
   // ----- tops para dashboard (sin búsqueda) -----
   const topCategorias = useMemo(() => {
     const m = new Map();
     (eventos || []).forEach((e) => {
-      const key = catToString(e.categoria) || "Sin categoría";
+      const rawCat = getProp(e, 'categoria', 'Categoria');
+      const key = catToString(rawCat) || "Sin categoría";
       m.set(key, (m.get(key) || 0) + 1);
     });
     return [...m.entries()]
@@ -141,7 +184,8 @@ export default function Dashboard() {
   const topMunicipios = useMemo(() => {
     const m = new Map();
     (eventos || []).forEach((e) => {
-      const key = e.municipio || "Sin municipio";
+      const muni = getProp(e, 'municipio', 'Municipio');
+      const key = muni || "Sin municipio";
       m.set(key, (m.get(key) || 0) + 1);
     });
     return [...m.entries()]
@@ -153,7 +197,6 @@ export default function Dashboard() {
   return (
     <main className="flex-grow p-6 sm:p-10 bg-white">
       <div className="max-w-6xl mx-auto">
-        {/* Encabezado + botón: solo si NO hay búsqueda */}
         {!hasSearch && (
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl sm:text-4xl font-bold text-indigo-700">Panel de Control 📊</h1>
@@ -163,7 +206,6 @@ export default function Dashboard() {
 
         {error && <div className="mb-4 p-3 rounded bg-red-100 text-red-700">{error}</div>}
 
-        {/* KPIs: solo si NO hay búsqueda */}
         {!hasSearch && (
           <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <KPI title="Usuarios" value={kpis.usuarios} loading={loading} />
@@ -172,7 +214,6 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* Tops: solo si NO hay búsqueda */}
         {!hasSearch && (
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
             <Card title="Top categorías por número de eventos">
@@ -194,30 +235,34 @@ export default function Dashboard() {
             <SkeletonRows />
           </Card>
         ) : hasSearch ? (
-          // ======= MODO BÚSQUEDA: SOLO RESULTADOS =======
           <>
             <div className="text-lg font-semibold mb-3">
-              Resultados ({eventosFiltrados.length})
+              Resultados para "{q}" ({eventosFiltrados.length})
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {eventosFiltrados.map((e) => (
-                <EventReal
-                  key={e.id}
-                  event={{
-                    ...e,
-                    imageUrl: e.imageUrl || imageByCategory(e.categoria),
-                    categoria: catToString(e.categoria), // asegura string para la card
-                  }}
-                  onShowDetails={handleShowDetails}
-                />
-              ))}
+              {eventosFiltrados.map((e) => {
+                const rawCat = getProp(e, 'categoria', 'Categoria');
+                return (
+                    <EventReal
+                    key={e.id || e.ID}
+                    event={{
+                        ...e,
+                        imageUrl: e.imageUrl || imageByCategory(rawCat),
+                        categoria: catToString(rawCat),
+                    }}
+                    onShowDetails={handleShowDetails}
+                    />
+                );
+              })}
               {eventosFiltrados.length === 0 && (
-                <div className="text-gray-500">No hay resultados para tu búsqueda.</div>
+                <div className="text-gray-500 col-span-full text-center py-10 border rounded-lg bg-gray-50">
+                    <p className="font-bold mb-2">No se encontraron eventos con "{q}".</p>
+                    <p className="text-sm">Prueba buscando por otra palabra clave o revisa los filtros aplicados.</p>
+                </div>
               )}
             </div>
           </>
         ) : (
-          // ======= DASHBOARD NORMAL =======
           <Card title={`Próximos eventos (${Math.min(8, eventos.length)})`}>
             <div className="overflow-x-auto">
               <table className="min-w-full border border-gray-200">
@@ -232,35 +277,38 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {eventos.slice(0, 8).map((e) => (
-                    <tr key={e.id} className="border-t">
-                      <Td>{e.inicio ? new Date(e.inicio).toLocaleString() : "-"}</Td>
-                      <Td className="font-medium">{e.nombre_evento}</Td>
-                      {/* 👇 evita "Objects are not valid as a React child" */}
-                      <Td>{catToString(e.categoria) || "-"}</Td>
-                      <Td>{e.municipio || "-"}</Td>
-                      <Td className="text-right">
-                        {e.precio != null && !Number.isNaN(Number(e.precio))
-                          ? Number(e.precio).toFixed(2)
-                          : "-"}
-                      </Td>
-                      <Td>
-                        <span
-                          className={`px-2 py-1 rounded text-xs ${
-                            norm(e.estado) === "activo"
-                              ? "bg-green-100 text-green-700"
-                              : norm(e.estado) === "finalizado"
-                              ? "bg-gray-100 text-gray-700"
-                              : norm(e.estado) === "cancelado"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-yellow-100 text-yellow-700"
-                          }`}
-                        >
-                          {e.estado || "pendiente"}
-                        </span>
-                      </Td>
-                    </tr>
-                  ))}
+                  {eventos.slice(0, 8).map((e) => {
+                    const inicio = getProp(e, 'inicio', 'Inicio');
+                    const nombre = getEventName(e); // Usamos el helper seguro
+                    const rawCat = getProp(e, 'categoria', 'Categoria');
+                    const muni = getProp(e, 'municipio', 'Municipio');
+                    const precio = getProp(e, 'precio', 'Precio');
+                    const estado = getProp(e, 'estado', 'Estado');
+
+                    return (
+                        <tr key={e.id || e.ID} className="border-t">
+                        <Td>{inicio ? new Date(inicio).toLocaleString() : "-"}</Td>
+                        <Td className="font-medium text-indigo-600">{nombre}</Td>
+                        <Td>{catToString(rawCat) || "-"}</Td>
+                        <Td>{muni || "-"}</Td>
+                        <Td className="text-right">
+                            {precio != null && !Number.isNaN(Number(precio))
+                            ? Number(precio).toFixed(2)
+                            : "-"}
+                        </Td>
+                        <Td>
+                             <span className={`px-2 py-1 rounded text-xs ${
+                                norm(estado) === "activo" ? "bg-green-100 text-green-700"
+                                : norm(estado) === "finalizado" ? "bg-gray-100 text-gray-700"
+                                : norm(estado) === "cancelado" ? "bg-red-100 text-red-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}>
+                            {estado || "pendiente"}
+                            </span>
+                        </Td>
+                        </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -268,7 +316,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Modal único reutilizable (carrete y búsqueda) */}
       <EventDetailsModal
         isOpen={open}
         onClose={() => setOpen(false)}

@@ -3,17 +3,20 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
-// Helpers UI
+// ===== Helpers UI =====
+
 function formatDate(ts) {
   if (!ts) return "N/A";
   const d = new Date(ts);
   return d.toLocaleDateString("es-VE", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
+
 function formatTime(ts) {
   if (!ts) return "N/A";
   const d = new Date(ts);
   return d.toLocaleTimeString("es-VE", { hour: "2-digit", minute: "2-digit" });
 }
+
 function formatMoney(val) {
   if (val === null || val === undefined) return "N/A";
   try {
@@ -22,6 +25,18 @@ function formatMoney(val) {
     return Number(val).toFixed(2);
   }
 }
+
+// Helper seguro para obtener nombre de categoría (Maneja Objetos y Strings)
+function getCategoryName(cat) {
+  if (!cat) return "Sin categoría";
+  if (typeof cat === "string") return cat;
+  if (typeof cat === "object") {
+    // Intenta leer .nombre o .Nombre, o devuelve "Sin nombre" si está vacío
+    return cat.nombre || cat.Nombre || "Categoría sin nombre";
+  }
+  return String(cat);
+}
+
 const estadoClass = (estado) => {
   const e = (estado || "").toLowerCase();
   const base = "inline-flex items-center justify-center px-2.5 py-1 rounded-full font-bold text-sm border";
@@ -38,6 +53,7 @@ export default function EventDetailsModal({ isOpen, onClose, event }) {
   const navigate = useNavigate();
   // Estado para mensajes inline (avisos amistosos)
   const [infoMsg, setInfoMsg] = useState("");
+  
   function showInfo(msg, ms = 3600) {
     setInfoMsg(msg);
     if (!msg) return;
@@ -53,8 +69,6 @@ export default function EventDetailsModal({ isOpen, onClose, event }) {
 
   if (!isOpen || !event) return null;
 
-  
-
   // Llama al endpoint de join (idempotente) y navega al chat devuelto
   async function ensureJoinAndGo() {
     const { data } = await supabase.auth.getSession();
@@ -64,36 +78,41 @@ export default function EventDetailsModal({ isOpen, onClose, event }) {
     }
     const token = data.session.access_token;
 
-    const res = await fetch(`${API_URL}/api/events/${event.id}/join`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    try {
+      const res = await fetch(`${API_URL}/api/events/${event.id}/join`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      console.error("join failed:", res.status, txt);
-      if (res.status === 401) alert("Inicia sesión para continuar.");
-      else alert("No se pudo inscribir/abrir el chat.");
-      return;
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        console.error("join failed:", res.status, txt);
+        if (res.status === 401) alert("Inicia sesión para continuar.");
+        else alert("No se pudo inscribir/abrir el chat.");
+        return;
+      }
+
+      const payload = await res.json().catch(() => ({}));
+      const chatId =
+        payload?.chat_id ??
+        payload?.chatId ??
+        payload?.data?.chat_id ??
+        payload?.data?.chatId ??
+        payload?.chat?.id ??
+        payload?.chat?.chat_id;
+
+      if (!chatId) {
+        console.error("Respuesta sin chat_id:", payload);
+        alert("Inscripción ok, pero no se obtuvo el chat. Revisa 'Mis chats'.");
+        return;
+      }
+
+      onClose?.();
+      navigate(`/chats/${chatId}`);
+    } catch (error) {
+      console.error("Error de red al unirse:", error);
+      alert("Error de conexión al intentar unirse.");
     }
-
-    const payload = await res.json().catch(() => ({}));
-    const chatId =
-      payload?.chat_id ??
-      payload?.chatId ??
-      payload?.data?.chat_id ??
-      payload?.data?.chatId ??
-      payload?.chat?.id ??
-      payload?.chat?.chat_id;
-
-    if (!chatId) {
-      console.error("Respuesta sin chat_id:", payload);
-      alert("Inscripción ok, pero no se obtuvo el chat. Revisa 'Mis chats'.");
-      return;
-    }
-
-    onClose?.();
-    navigate(`/chats/${chatId}`);
   }
 
   // “Inscribirme e ir al chat”
@@ -191,7 +210,13 @@ export default function EventDetailsModal({ isOpen, onClose, event }) {
           <div className="flex items-start gap-2 my-2"><span aria-hidden>🕔</span><span className="break-words">{formatTime(event.inicio)}</span></div>
           <div className="flex items-start gap-2 my-2"><span aria-hidden>🎫</span><span className="break-words">Cupos: {event.cupos ?? "N/A"}</span></div>
           <div className="flex items-start gap-2 my-2"><span aria-hidden>💲</span><span className="break-words">{formatMoney(event.precio)}</span></div>
-          <div className="flex items-start gap-2 my-2"><span aria-hidden>🏷️</span><span className="break-words">{event.categoria ? event.categoria.nombre : "Sin categoría"}</span></div>
+          
+          {/* 👇 AQUÍ ESTÁ EL CAMBIO CLAVE PARA EVITAR EL ERROR DE OBJETO */}
+          <div className="flex items-start gap-2 my-2">
+            <span aria-hidden>🏷️</span>
+            <span className="break-words">{getCategoryName(event.categoria)}</span>
+          </div>
+
           <div className="flex items-start gap-2 my-2"><span aria-hidden>ℹ️</span><span className={estadoClass(event.estado)}>{event.estado || "Pendiente"}</span></div>
         </div>
 
