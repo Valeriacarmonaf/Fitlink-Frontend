@@ -282,7 +282,7 @@ export default function LandingPage() {
       </section>
 
       {/* 🔥 BLOQUE NUEVO: Explorar usuarios */}
-      <section className="max-w-3xl mx-auto mb-12 bg-white shadow-xl rounded-2xl p-8 text-center">
+      {/*<section className="max-w-3xl mx-auto mb-12 bg-white shadow-xl rounded-2xl p-8 text-center">
         <h2 className="text-3xl font-semibold mb-4 text-gray-800">
           Explorar Usuarios
         </h2>
@@ -296,7 +296,7 @@ export default function LandingPage() {
         >
           Ver Usuarios
         </Link>
-      </section>
+      </section>*/}
 
       {/* EVENTOS */}
       <section className="max-w-7xl mx-auto py-8 px-4 bg-white rounded-2xl shadow-xl">
