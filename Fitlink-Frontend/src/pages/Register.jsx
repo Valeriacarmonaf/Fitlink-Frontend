@@ -86,7 +86,7 @@ export default function RegisterForm() {
 
   return (
     <div className="max-w-lg mx-auto bg-white p-6 shadow-lg rounded-2xl mt-6">
-      <h2 className="text-2xl font-bold mb-4 text-center">Crear una Cuenta</h2>
+      <h2 className="text-2xl font-bold mb-4 text-center text-gray-800">Crear una Cuenta</h2>
       
       {message && (
         <div className={`mb-4 p-3 rounded text-center font-medium ${
@@ -99,66 +99,100 @@ export default function RegisterForm() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        
+        {/* --- INICIO DE LA SECCIÓN DE FOTO MEJORADA --- */}
         <div>
-          <label className="block font-medium">Carnet de Estudiante:</label>
-          <input type="text" name="carnet" value={formData.carnet} onChange={handleChange} className="border p-2 w-full rounded" required />
+          <label className="block font-medium mb-2 text-gray-700">Foto de Perfil</label>
+          <div className="flex items-center space-x-6">
+            <div className="shrink-0">
+              {formData.foto ? (
+                <img 
+                  className="h-16 w-16 object-cover rounded-full border-2 border-gray-200" 
+                  src={formData.foto} 
+                  alt="Foto actual" 
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center text-gray-400">
+                  {/* Icono SVG por defecto cuando no hay foto */}
+                  <svg className="h-10 w-10" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <label className="block">
+              <span className="sr-only">Elige una foto de perfil</span>
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+                className="block w-full text-sm text-slate-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100
+                  cursor-pointer transition-colors"
+              />
+            </label>
+          </div>
+          {errors.foto && <p className="text-red-500 text-sm mt-1">{errors.foto}</p>}
+        </div>
+        {/* --- FIN DE LA SECCIÓN DE FOTO MEJORADA --- */}
+
+        <div>
+          <label className="block font-medium text-gray-700">Carnet de Estudiante:</label>
+          <input type="text" name="carnet" value={formData.carnet} onChange={handleChange} className="border border-gray-300 p-2 w-full rounded focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required />
           {errors.carnet && <p className="text-red-500 text-sm mt-1">{errors.carnet}</p>}
         </div>
         
         <div>
-          <label className="block font-medium">Email:</label>
-          <input type="email" name="email" value={formData.email} onChange={handleChange} className="border p-2 w-full rounded" required />
+          <label className="block font-medium text-gray-700">Email:</label>
+          <input type="email" name="email" value={formData.email} onChange={handleChange} className="border border-gray-300 p-2 w-full rounded focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required />
           {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
         </div>
         
         <div>
-          <label className="block font-medium">Contraseña:</label>
-          <input type="password" name="password" value={formData.password} onChange={handleChange} className="border p-2 w-full rounded" required />
+          <label className="block font-medium text-gray-700">Contraseña:</label>
+          <input type="password" name="password" value={formData.password} onChange={handleChange} className="border border-gray-300 p-2 w-full rounded focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required />
           {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
         </div>
 
         <div>
-          <label className="block font-medium">Nombre Completo:</label>
-          <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className="border p-2 w-full rounded" required />
+          <label className="block font-medium text-gray-700">Nombre Completo:</label>
+          <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} className="border border-gray-300 p-2 w-full rounded focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required />
           {errors.nombre && <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>}
         </div>
 
         <div>
-          <label className="block font-medium">Biografía (opcional):</label>
-          <textarea name="biografia" value={formData.biografia} onChange={handleChange} className="border p-2 w-full rounded" />
+          <label className="block font-medium text-gray-700">Biografía (opcional):</label>
+          <textarea name="biografia" value={formData.biografia} onChange={handleChange} className="border border-gray-300 p-2 w-full rounded focus:ring-2 focus:ring-blue-500 focus:outline-none transition" />
         </div>
         
-        <div>
-          <label className="block font-medium">Fecha de Nacimiento:</label>
-          <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="border p-2 w-full rounded" required />
-          {errors.fechaNacimiento && <p className="text-red-500 text-sm mt-1">{errors.fechaNacimiento}</p>}
-        </div>
-        
-        <div>
-          <label className="block font-medium">Municipio:</label>
-          <select name="ciudad" value={formData.ciudad} onChange={handleChange} className="border p-2 w-full rounded" required>
-            <option value="">Selecciona un municipio</option>
-            <option value="Libertador">Libertador</option>
-            <option value="Chacao">Chacao</option>
-            <option value="Baruta">Baruta</option>
-            <option value="Sucre">Sucre</option>
-            <option value="El Hatillo">El Hatillo</option>
-          </select>
-          {errors.ciudad && <p className="text-red-500 text-sm mt-1">{errors.ciudad}</p>}
-        </div>
-
-        <div>
-          <label className="block font-medium">Foto de Perfil (opcional):</label>
-          <input type="file" accept="image/*" onChange={handleImageUpload} className="w-full text-sm" />
-          {errors.foto && <p className="text-red-500 text-sm mt-1">{errors.foto}</p>}
-          {formData.foto && (
-            <img src={formData.foto} alt="Vista previa" className="w-20 h-20 rounded-full object-cover mt-2" />
-          )}
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+            <label className="block font-medium text-gray-700">Fecha de Nacimiento:</label>
+            <input type="date" name="fechaNacimiento" value={formData.fechaNacimiento} onChange={handleChange} className="border border-gray-300 p-2 w-full rounded focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required />
+            {errors.fechaNacimiento && <p className="text-red-500 text-sm mt-1">{errors.fechaNacimiento}</p>}
+            </div>
+            
+            <div>
+            <label className="block font-medium text-gray-700">Municipio:</label>
+            <select name="ciudad" value={formData.ciudad} onChange={handleChange} className="border border-gray-300 p-2 w-full rounded focus:ring-2 focus:ring-blue-500 focus:outline-none transition" required>
+                <option value="">Selecciona</option>
+                <option value="Libertador">Libertador</option>
+                <option value="Chacao">Chacao</option>
+                <option value="Baruta">Baruta</option>
+                <option value="Sucre">Sucre</option>
+                <option value="El Hatillo">El Hatillo</option>
+            </select>
+            {errors.ciudad && <p className="text-red-500 text-sm mt-1">{errors.ciudad}</p>}
+            </div>
         </div>
         
         <button
           type="submit"
-          className="bg-blue-600 text-white font-bold px-4 py-3 rounded hover:bg-blue-700 w-full transition-colors duration-200"
+          className="bg-blue-600 text-white font-bold px-4 py-3 rounded hover:bg-blue-700 w-full transition-colors duration-200 shadow-md"
         >
           Registrarse
         </button>
