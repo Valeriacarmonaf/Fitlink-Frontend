@@ -1,17 +1,11 @@
-// src/pages/LandingPage.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import EventReal from "../components/EventReal";
 import EventDetailsModal from "../components/EventDetailsModal";
 import CreateEventModal from "../components/CreateEventModal";
-
-// Importa el botón de notificaciones
-   import NotificationButton from "../components/NotificationButton"; 
-   {/* Sección de Notificaciones */}
-    <section className="max-w-4xl mx-auto mb-12 text-center">
-        <NotificationButton session={session} />  {/* Aquí agregamos el botón de notificaciones */}
-      </section>
+// Importamos el componente de notificaciones
+import NotificationButton from "../components/NotificationButton";
 
 const PrimaryButtonClasses =
   "inline-block px-10 py-4 text-lg bg-indigo-600 text-white font-bold rounded-xl shadow-xl hover:bg-indigo-700 transition duration-300 transform hover:scale-[1.02]";
@@ -51,7 +45,6 @@ function EventCard({ ev, onMatch }) {
   return (
     <div className="rounded-2xl bg-[#d9e6ff] p-4 shadow-sm mb-4">
       <div className="text-sm text-gray-600 capitalize">
-        {/* AQUÍ ESTABA EL ERROR: Ahora usamos categoryName */}
         {categoryName || "Sin categoría"} · {ev.nivel || "General"}
       </div>
       <h3 className="text-lg font-semibold mt-1">{ev.nombre_evento || ev.descripcion}</h3>
@@ -105,19 +98,9 @@ export default function LandingPage() {
         const sess = data.session ?? null;
         setSession(sess);
 
-        if (!sess) {
-          // Si quieres mostrar eventos públicos aunque no haya sesión, quita este if
-          // Pero tu lógica original limpiaba eventos si no hay sesión:
-          // setEvents([]); 
-          // setLoading(false);
-          // return;
-        }
-
         setLoading(true);
         setErr("");
 
-        // Cargar eventos (públicos o privados según tu lógica)
-        // Usamos token si existe, si no, fetch normal (si tu API lo permite)
         const headers = sess ? { Authorization: `Bearer ${sess.access_token}` } : {};
         
         const res = await fetch("/api/events/latest", { headers });
@@ -169,38 +152,6 @@ export default function LandingPage() {
   const PAGE_SIZE = 3;
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const [page, setPage] = useState(0);
-  
-  useEffect(() => setPage(0), [selectedZone, filtered.length]);
-  const imageByCategory = (cat) => {
-    let categoryName = ""; // 1. Empezar con un string vacío
-
-    if (typeof cat === 'string') {
-      // 2. Si es un string, usarlo
-      categoryName = cat;
-    } else if (typeof cat === 'object' && cat !== null && cat.nombre) {
-      // 3. Si es un objeto como { nombre: "Yoga" }, usar .nombre
-      categoryName = cat.nombre;
-    } else if (typeof cat === 'number') {
-      // 4. Si es un número, convertirlo a string (no fallará)
-      categoryName = String(cat);
-    }
-    // 5. Si es null o undefined, categoryName seguirá siendo "" 
-
-    const k = (categoryName || "").toLowerCase();
-
-    if (k.includes("yoga") || k.includes("mente"))
-      return "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=1200&auto=format&fit=crop";
-    if (k.includes("running") || k.includes("caminata"))
-      return "https://images.unsplash.com/photo-1546483875-ad9014c88eba?q=80&w=1200&auto=format&fit=crop";
-    if (k.includes("cicl"))
-      return "https://images.unsplash.com/photo-1452626038306-9aae5e071dd3?q=80&w=1200&auto=format&fit=crop";
-    if (k.includes("equipo"))
-      return "https://images.unsplash.com/photo-1521417531039-94eaa7b5456f?q=80&w=1200&auto=format&fit=crop";
-    
-    // Imagen por defecto
-    return "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop";
-  };
-  // ----- FIN DE LA CORRECCIÓN -----
 
   useEffect(() => {
     setPage(0);
@@ -218,7 +169,7 @@ export default function LandingPage() {
   async function reloadEvents() {
     const { data } = await supabase.auth.getSession();
     const token = data?.session?.access_token;
-    if (!token) return; // O manejar lógica pública
+    if (!token) return; 
     const res = await fetch("/api/events/latest", {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -249,6 +200,7 @@ export default function LandingPage() {
 
       if (!res.ok) throw new Error("No se pudo hacer match");
       const { chat_id } = await res.json();
+      
       if (chat_id) {
         navigate(`/chats/${chat_id}`);
       } else {
@@ -275,9 +227,15 @@ export default function LandingPage() {
         </Link>
       </section>
 
-      
+      {/* AQUÍ INSERTAMOS LA SECCIÓN DE NOTIFICACIONES */}
+      {session && (
+        <section className="max-w-4xl mx-auto mb-12 text-center bg-white/50 p-4 rounded-xl">
+            <h3 className="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wider">Centro de Novedades</h3>
+            <NotificationButton session={session} />
+        </section>
+      )}
 
-      {/* 🔥 BLOQUE NUEVO: Explorar usuarios */}
+      {/* Explorar usuarios */}
       <section className="max-w-3xl mx-auto mb-12 bg-white shadow-xl rounded-2xl p-8 text-center">
         <h2 className="text-3xl font-semibold mb-4 text-gray-800">
           Explorar Usuarios
@@ -344,7 +302,6 @@ export default function LandingPage() {
                     key={e.id}
                     event={{
                       ...e,
-                      // Aseguramos que la imagen se genere bien aunque categoria sea un objeto
                       imageUrl: e.imageUrl || imageByCategory(e.categoria),
                     }}
                     onShowDetails={handleShowDetails}
@@ -388,7 +345,7 @@ export default function LandingPage() {
         )}
       </section>
 
-      {/* Invitaciones (Lista vertical simple) */}
+      {/* Invitaciones */}
       <section className="max-w-3xl mx-auto mt-8 px-4">
         <div className="flex items-center justify-between mt-6 mb-3">
           <h2 className="text-lg font-semibold">
@@ -412,7 +369,6 @@ export default function LandingPage() {
           events.length === 0 ? (
             <div className="text-gray-500">Aún no hay invitaciones.</div>
           ) : (
-            // Aquí usamos el EventCard corregido que soporta objetos en categoria
             events.map((ev) => <EventCard key={ev.id} ev={ev} onMatch={handleMatch} />)
           )
         ) : (
@@ -422,7 +378,6 @@ export default function LandingPage() {
         )}
       </section>
 
-      {/* Modales */}
       <EventDetailsModal
         isOpen={openDetails}
         onClose={() => setOpenDetails(false)}
@@ -434,6 +389,7 @@ export default function LandingPage() {
         onClose={() => setOpenCreate(false)}
         onCreated={handleCreated}
       />
+
     </main>
   );
 }
