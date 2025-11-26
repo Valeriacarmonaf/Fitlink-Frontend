@@ -7,6 +7,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
   const [categoria, setCategoria] = useState("");
   const [dia, setDia] = useState("");    // yyyy-mm-dd
   const [hora, setHora] = useState("");  // HH:mm
+  const [meridiano, setMeridiano] = useState("AM");
   const [nivel, setNivel] = useState("principiante");
   const [municipio, setMunicipio] = useState("");
 
@@ -44,13 +45,29 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
         ? "Intermedio"
         : "Avanzado";
 
+    let horaBackend = hora; // por si acaso
+    if (hora) {
+      const [hStr, mStr] = hora.split(":");
+      let hNum = parseInt(hStr, 10);
+
+      if (meridiano === "PM" && hNum < 12) {
+        hNum += 12;
+      }
+      if (meridiano === "AM" && hNum === 12) {
+        hNum = 0;
+      }
+
+      const hh = String(hNum).padStart(2, "0");
+      horaBackend = `${hh}:${mStr}`;
+    }
+
     // Preparamos el body EXACTAMENTE como lo espera FastAPI
     const body = {
       nombre,
       descripcion,
       categoria,
       fecha: dia,           // 👈 el backend espera 'fecha'
-      hora,
+      hora: horaBackend,
       nivel: nivelBackend,  // 👈 capitalizado
       municipio: municipio || null,
     };
@@ -132,13 +149,26 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
 
           <div>
             <label className="block text-sm font-medium">Hora</label>
-            <input
-              type="time"
-              className="w-full rounded-xl border border-gray-300 p-2"
-              value={hora}
-              onChange={(e) => setHora(e.target.value)}
-              required
-            />
+            <div className="flex gap-2">
+              <input
+                type="time"
+                className="w-full rounded-xl border border-gray-300 p-2"
+                value={hora}
+                onChange={(e) => setHora(e.target.value)}
+                required
+              />
+              <select
+                className="rounded-xl border border-gray-300 p-2"
+                value={meridiano}
+                onChange={(e) => setMeridiano(e.target.value)}
+              >
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              El backend guarda la hora en formato 24h automáticamente.
+            </p>
           </div>
 
           <div className="col-span-2">

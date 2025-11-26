@@ -227,16 +227,8 @@ export default function LandingPage() {
         </Link>
       </section>
 
-      {/* AQUÍ INSERTAMOS LA SECCIÓN DE NOTIFICACIONES */}
-      {session && (
-        <section className="max-w-4xl mx-auto mb-12 text-center bg-white/50 p-4 rounded-xl">
-            <h3 className="text-sm font-semibold text-gray-500 mb-2 uppercase tracking-wider">Centro de Novedades</h3>
-            <NotificationButton session={session} />
-        </section>
-      )}
-
-      {/* Explorar usuarios */}
-      <section className="max-w-3xl mx-auto mb-12 bg-white shadow-xl rounded-2xl p-8 text-center">
+      {/* 🔥 BLOQUE NUEVO: Explorar usuarios */}
+      {/*<section className="max-w-3xl mx-auto mb-12 bg-white shadow-xl rounded-2xl p-8 text-center">
         <h2 className="text-3xl font-semibold mb-4 text-gray-800">
           Explorar Usuarios
         </h2>
@@ -249,7 +241,7 @@ export default function LandingPage() {
         >
           Ver Usuarios
         </Link>
-      </section>
+      </section>*/}
 
       {/* EVENTOS (Carrusel) */}
       <section className="max-w-7xl mx-auto py-8 px-4 bg-white rounded-2xl shadow-xl">
