@@ -7,11 +7,11 @@ import EventDetailsModal from "../components/EventDetailsModal";
 import CreateEventModal from "../components/CreateEventModal";
 
 // Importa el botón de notificaciones
-// import NotificationButton from "../components/NotificationButton"; 
-// {/* Sección de Notificaciones */}
-//  <section className="max-w-4xl mx-auto mb-12 text-center">
-//      <NotificationButton session={session} />  {/* Aquí agregamos el botón de notificaciones */}
-//    </section>
+   import NotificationButton from "../components/NotificationButton"; 
+   {/* Sección de Notificaciones */}
+    <section className="max-w-4xl mx-auto mb-12 text-center">
+        <NotificationButton session={session} />  {/* Aquí agregamos el botón de notificaciones */}
+      </section>
 
 const PrimaryButtonClasses =
   "inline-block px-10 py-4 text-lg bg-indigo-600 text-white font-bold rounded-xl shadow-xl hover:bg-indigo-700 transition duration-300 transform hover:scale-[1.02]";
