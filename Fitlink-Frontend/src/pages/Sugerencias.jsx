@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase'; // Solo para autenticación
 import EventDetailsModal from '../components/EventDetailsModal';
 import { Link } from 'react-router-dom'; // Importar Link para el perfil de usuario
@@ -71,10 +71,57 @@ function UserSuggestionBadge({ reason }) {
 
 // --- NUEVO: Tarjeta de Usuario ---
 function UserCard({ user }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // cerrar menú si se hace click fuera
+  useEffect(() => {
+    function handleOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
+
   return (
     <div 
       className="bg-white rounded-lg shadow-md overflow-hidden transition-transform hover:scale-105 cursor-default" // Cambiado a cursor-default
     >
+      {/* Botón de 3 puntos en esquina superior derecha */}
+      <div className="relative">
+        <div className="absolute right-2 top-2" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            className="p-1 rounded-full hover:bg-gray-100"
+            aria-label="Opciones"
+          >
+            {/* Icono 3 puntos verticales */}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="5" r="1.5" fill="currentColor" />
+              <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+              <circle cx="12" cy="19" r="1.5" fill="currentColor" />
+            </svg>
+          </button>
+
+          {menuOpen && (
+            <div className="mt-2 w-44 bg-white shadow-lg rounded-md ring-1 ring-black ring-opacity-5">
+              <button
+                className="w-full text-left px-4 py-3 hover:bg-gray-50"
+                onClick={() => {
+                  // emitir evento personalizado para que el padre muestre modal
+                  const ev = new CustomEvent('open-report-modal', { detail: { user } });
+                  window.dispatchEvent(ev);
+                  setMenuOpen(false);
+                }}
+              >
+                Reportar usuario
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
       <img 
         src={user.foto_url || `https://ui-avatars.com/api/?name=${user.nombre}&background=random`} 
         alt={`Foto de ${user.nombre}`}
@@ -104,6 +151,84 @@ export default function Sugerencias() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+  // --- Estados para reportes de usuario ---
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportedUser, setReportedUser] = useState(null);
+  const [reportReason, setReportReason] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  useEffect(() => {
+    function handleOpen(e) {
+      const { user } = e.detail || {};
+      setReportedUser(user);
+      setReportReason("");
+      setShowReportModal(true);
+    }
+    window.addEventListener('open-report-modal', handleOpen);
+    return () => window.removeEventListener('open-report-modal', handleOpen);
+  }, []);
+
+  const closeReportModal = () => {
+    setShowReportModal(false);
+    setReportedUser(null);
+    setReportReason("");
+  };
+
+  const handleConfirmReport = async () => {
+    if (!reportedUser) return;
+    if (!reportReason || reportReason.trim().length === 0) return;
+    setSubmittingReport(true);
+
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('No estás autenticado.');
+      const token = session.access_token;
+
+      const payload = {
+        reported_id: reportedUser.id,
+        reason: reportReason.trim().slice(0, 50),
+      };
+
+      // Mostrar en consola los ids solicitados: quien reporta y quien es reportado
+      const reporterId = session.user?.id || null;
+      console.log('Reportando usuario - reporter_id:', reporterId, 'reported_id:', payload.reported_id);
+
+      const res = await fetch(`${API_URL}/reports/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Error al enviar el reporte');
+      }
+
+      // Response puede contener id y created_at
+      const respJson = await res.json();
+
+      // Mostrar confirmación
+      setShowConfirmation(true);
+      closeReportModal();
+
+      // Ocultar confirmación después de 2s
+      setTimeout(() => setShowConfirmation(false), 2000);
+
+      console.log('Reporte enviado:', respJson);
+
+    } catch (err) {
+      console.error('Error reportando usuario:', err);
+      alert('No se pudo enviar el reporte. Intenta de nuevo.');
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
 
   useEffect(() => {
     const loadAllSuggestions = async () => {
@@ -213,6 +338,46 @@ export default function Sugerencias() {
           {userSuggestions.map(user => (
             <UserCard key={user.id} user={user} />
           ))}
+        </div>
+      )}
+
+      {/* Modal de reporte */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black opacity-40" onClick={closeReportModal}></div>
+          <div className="relative w-full max-w-md mx-auto bg-white rounded-lg shadow-lg p-6 z-10">
+            <h3 className="text-lg font-semibold mb-2">Reportar usuario</h3>
+            <p className="text-sm text-gray-600 mb-4">Indica brevemente el motivo (máx. 50 caracteres)</p>
+            <input
+              className="w-full border rounded-md px-3 py-2 mb-4"
+              placeholder="Motivo del reporte"
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value.slice(0,50))}
+              maxLength={50}
+            />
+            <div className="flex justify-end gap-2">
+              <button className="px-4 py-2 rounded-md bg-gray-200" onClick={closeReportModal} disabled={submittingReport}>Cancelar</button>
+              <button
+                className="px-4 py-2 rounded-md bg-red-600 text-white"
+                onClick={handleConfirmReport}
+                disabled={submittingReport || reportReason.trim().length === 0}
+              >
+                {submittingReport ? 'Enviando...' : 'Confirmar reporte'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmación breve (toast responsivo) */}
+      {showConfirmation && (
+        <div className="fixed z-50 bottom-6 left-1/2 transform -translate-x-1/2 md:left-auto md:right-6 pointer-events-none">
+          <div className="pointer-events-auto">
+            <div className="flex items-center bg-green-50 border border-green-200 text-green-900 px-4 py-2 rounded-full shadow-md max-w-xs">
+              <span className="mr-3 text-2xl">✅</span>
+              <div className="text-sm font-medium">Usuario reportado</div>
+            </div>
+          </div>
         </div>
       )}
 
