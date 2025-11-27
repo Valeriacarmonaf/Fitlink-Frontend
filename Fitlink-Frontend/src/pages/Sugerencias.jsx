@@ -158,6 +158,8 @@ export default function Sugerencias() {
   const [reportReason, setReportReason] = useState("");
   const [submittingReport, setSubmittingReport] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState('Usuario reportado');
+  const [confirmationType, setConfirmationType] = useState('success'); // 'success' | 'info' | 'error'
 
   useEffect(() => {
     function handleOpen(e) {
@@ -204,22 +206,39 @@ export default function Sugerencias() {
         },
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Error al enviar el reporte');
+      // Manejo de respuestas específicas
+      if (res.status === 409) {
+        // Ya reportado por este usuario
+        let body = {};
+        try { body = await res.json(); } catch (e) { /* ignore */ }
+        const msg = body?.message || 'Ya reportaste este usuario';
+        setConfirmationMessage(msg);
+        setConfirmationType('info');
+        setShowConfirmation(true);
+        closeReportModal();
+        setTimeout(() => setShowConfirmation(false), 2500);
+        return;
       }
 
-      // Response puede contener id y created_at
-      const respJson = await res.json();
+      if (!res.ok) {
+        // Otros errores: mostrar toast de error
+        let text = 'Error al enviar el reporte';
+        try { text = await res.text(); } catch (e) { /* ignore */ }
+        setConfirmationMessage(text || 'No se pudo enviar el reporte. Intenta de nuevo.');
+        setConfirmationType('error');
+        setShowConfirmation(true);
+        closeReportModal();
+        setTimeout(() => setShowConfirmation(false), 3000);
+        return;
+      }
 
-      // Mostrar confirmación
+      // Éxito
+      const respJson = await res.json();
+      setConfirmationMessage('Usuario reportado');
+      setConfirmationType('success');
       setShowConfirmation(true);
       closeReportModal();
-
-      // Ocultar confirmación después de 2s
       setTimeout(() => setShowConfirmation(false), 2000);
-
       console.log('Reporte enviado:', respJson);
 
     } catch (err) {
@@ -373,9 +392,13 @@ export default function Sugerencias() {
       {showConfirmation && (
         <div className="fixed z-50 bottom-6 left-1/2 transform -translate-x-1/2 md:left-auto md:right-6 pointer-events-none">
           <div className="pointer-events-auto">
-            <div className="flex items-center bg-green-50 border border-green-200 text-green-900 px-4 py-2 rounded-full shadow-md max-w-xs">
-              <span className="mr-3 text-2xl">✅</span>
-              <div className="text-sm font-medium">Usuario reportado</div>
+            <div className={`flex items-center px-4 py-2 rounded-full shadow-md max-w-xs ${confirmationType === 'success' ? 'bg-green-50 border border-green-200 text-green-900' : ''} ${confirmationType === 'info' ? 'bg-yellow-50 border border-yellow-200 text-yellow-900' : ''} ${confirmationType === 'error' ? 'bg-red-50 border border-red-200 text-red-900' : ''}`}>
+              <span className="mr-3 text-2xl">
+                {confirmationType === 'success' && '✅'}
+                {confirmationType === 'info' && '⚠️'}
+                {confirmationType === 'error' && '❌'}
+              </span>
+              <div className="text-sm font-medium">{confirmationMessage}</div>
             </div>
           </div>
         </div>
